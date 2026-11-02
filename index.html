@@ -1,1591 +1,2248 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="dark scroll-smooth">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image, GIF & Video Compressor</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Inter & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-  <!-- Pako, UPNG.js & Omggif for client-side PNG & GIF quantization/encoding -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/upng-js/2.1.0/UPNG.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.min.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image, GIF & Video Compressor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Pako, UPNG.js & Omggif for client-side PNG & GIF quantization/encoding -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/upng-js/2.1.0/UPNG.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.min.js"></script>
 
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          }
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        overflow-x: hidden;
+      }
+
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation: none;
+        mix-blend-mode: normal;
+      }
+      ::view-transition-old(root) {
+        z-index: 1;
+      }
+      ::view-transition-new(root) {
+        z-index: 9999;
+      }
+
+      input[type="range"].universal-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          #6366f1 0%,
+          #10b981 var(--slider-pct, 20%),
+          rgba(148, 163, 184, 0.28) var(--slider-pct, 20%),
+          rgba(148, 163, 184, 0.28) 100%
+        );
+        outline: none;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      input[type="range"].universal-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 4px solid #6366f1;
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+        cursor: grab;
+        transition:
+          transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 0.15s ease;
+      }
+
+      input[type="range"].universal-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.14);
+        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.6);
+      }
+
+      input[type="range"].universal-slider::-webkit-slider-thumb:active {
+        cursor: grabbing;
+        transform: scale(0.96);
+      }
+
+      input[type="range"].universal-slider::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 4px solid #6366f1;
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+        cursor: grab;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
-    }
-  </script>
+      .animate-fade-up {
+        animation: fadeUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
 
-  <style>
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      overflow-x: hidden;
-    }
+      @keyframes modalPop {
+        from {
+          opacity: 0;
+          transform: scale(0.96) translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      .animate-modal-pop {
+        animation: modalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
 
-    ::view-transition-old(root),
-    ::view-transition-new(root) {
-      animation: none;
-      mix-blend-mode: normal;
-    }
-    ::view-transition-old(root) { z-index: 1; }
-    ::view-transition-new(root) { z-index: 9999; }
+      @keyframes progressShimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+      .shimmer-bar {
+        background: linear-gradient(
+          90deg,
+          #6366f1 0%,
+          #818cf8 50%,
+          #10b981 100%
+        );
+        background-size: 200% 100%;
+        animation: progressShimmer 1.6s infinite linear;
+      }
 
-    input[type="range"].universal-slider {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 8px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #6366f1 0%, #10b981 var(--slider-pct, 20%), rgba(148, 163, 184, 0.28) var(--slider-pct, 20%), rgba(148, 163, 184, 0.28) 100%);
-      outline: none;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
+      .checkerboard {
+        background-color: #f1f5f9;
+        background-image:
+          linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+          linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+          linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+        background-size: 18px 18px;
+        background-position:
+          0 0,
+          0 9px,
+          9px -9px,
+          -9px 0px;
+      }
+      html.dark .checkerboard {
+        background-color: #0f172a;
+        background-image:
+          linear-gradient(45deg, #1e293b 25%, transparent 25%),
+          linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #1e293b 75%),
+          linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+      }
 
-    input[type="range"].universal-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 4px solid #6366f1;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
-      cursor: grab;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-    }
-
-    input[type="range"].universal-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.14);
-      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.6);
-    }
-
-    input[type="range"].universal-slider::-webkit-slider-thumb:active {
-      cursor: grabbing;
-      transform: scale(0.96);
-    }
-
-    input[type="range"].universal-slider::-moz-range-thumb {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 4px solid #6366f1;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
-      cursor: grab;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fade-up {
-      animation: fadeUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    @keyframes modalPop {
-      from { opacity: 0; transform: scale(0.96) translateY(8px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .animate-modal-pop {
-      animation: modalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    @keyframes progressShimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    .shimmer-bar {
-      background: linear-gradient(90deg, #6366f1 0%, #818cf8 50%, #10b981 100%);
-      background-size: 200% 100%;
-      animation: progressShimmer 1.6s infinite linear;
-    }
-
-    .checkerboard {
-      background-color: #f1f5f9;
-      background-image:
-        linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
-        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
-        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
-      background-size: 18px 18px;
-      background-position: 0 0, 0 9px, 9px -9px, -9px 0px;
-    }
-    html.dark .checkerboard {
-      background-color: #0f172a;
-      background-image:
-        linear-gradient(45deg, #1e293b 25%, transparent 25%),
-        linear-gradient(-45deg, #1e293b 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #1e293b 75%),
-        linear-gradient(-45deg, transparent 75%, #1e293b 75%);
-    }
-
-    .diff-viewport {
-      position: relative;
-      user-select: none;
-      -webkit-user-select: none;
-      overflow: hidden;
-      touch-action: none;
-    }
-    .diff-handle {
-      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
-    }
-    .diff-viewport:hover .diff-handle {
-      transform: translate(-50%, -50%) scale(1.08);
-    }
-    .diff-viewport.dragging-slider .diff-handle {
-      transform: translate(-50%, -50%) scale(1.15);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.45);
-    }
-  </style>
-</head>
-<body class="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-600 selection:text-white transition-colors duration-200">
-
-  <!-- Header -->
-  <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800/80 sticky top-0 z-30">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-500/30">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <span class="font-bold text-base tracking-tight text-slate-900 dark:text-white">Compress</span>
-        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap">PNG • GIF • MP4 • WebP</span>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <div id="headerActions" class="hidden items-center gap-2">
-          <button id="addMoreBtn" type="button" class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all whitespace-nowrap cursor-pointer">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Files</span>
-          </button>
-          <button id="clearAllBtn" type="button" class="text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all whitespace-nowrap cursor-pointer">
-            Clear All
-          </button>
-        </div>
-
-        <button
-          id="themeToggleBtn"
-          type="button"
-          aria-label="Toggle Dark or Light Mode"
-          title="Switch Dark / Light Theme"
-          class="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/70 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
-        >
-          <svg id="themeSunIcon" class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"></path>
-          </svg>
-          <svg id="themeMoonIcon" class="hidden w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
-          </svg>
-          <span id="themeToggleText" class="hidden sm:inline">Light</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Workspace -->
-  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-
-    <!-- Upload Zone -->
-    <section id="uploadSection">
+      .diff-viewport {
+        position: relative;
+        user-select: none;
+        -webkit-user-select: none;
+        overflow: hidden;
+        touch-action: none;
+      }
+      .diff-handle {
+        transition:
+          transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 0.18s ease;
+      }
+      .diff-viewport:hover .diff-handle {
+        transform: translate(-50%, -50%) scale(1.08);
+      }
+      .diff-viewport.dragging-slider .diff-handle {
+        transform: translate(-50%, -50%) scale(1.15);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.45);
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-600 selection:text-white transition-colors duration-200"
+  >
+    <!-- Header -->
+    <header
+      class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800/80 sticky top-0 z-30"
+    >
       <div
-        id="dropZone"
-        class="group relative bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-400 rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-200 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 shadow-sm"
+        class="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between"
       >
-        <input
-          id="fileInput"
-          type="file"
-          accept="image/png,image/gif,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime,.png,.gif,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.m4v"
-          multiple
-          class="hidden"
-        />
-
-        <div class="w-full mx-auto flex flex-col items-center">
-          <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-all duration-200 group-hover:scale-105 mb-3.5">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-500/30"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
             </svg>
           </div>
+          <span
+            class="font-bold text-base tracking-tight text-slate-900 dark:text-white"
+            >Compress</span
+          >
+          <span
+            class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap"
+            >PNG • GIF • MP4 • WebP</span
+          >
+        </div>
 
-          <h1 class="text-xs sm:text-base md:text-lg font-bold text-slate-900 dark:text-white whitespace-nowrap">
-            Drop PNGs, GIFs, Images, or Videos here, or <span class="text-indigo-600 dark:text-indigo-400 underline decoration-indigo-400/60 underline-offset-4">browse</span>
-          </h1>
-          <p class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
-            LZW Delta-Frame Optimization • Built-in subpixel zoom & pan inspection
-          </p>
+        <div class="flex items-center gap-2">
+          <div id="headerActions" class="hidden items-center gap-2">
+            <button
+              id="addMoreBtn"
+              type="button"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all whitespace-nowrap cursor-pointer"
+            >
+              <svg
+                class="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Add Files</span>
+            </button>
+            <button
+              id="clearAllBtn"
+              type="button"
+              class="text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all whitespace-nowrap cursor-pointer"
+            >
+              Clear All
+            </button>
+          </div>
+
+          <button
+            id="themeToggleBtn"
+            type="button"
+            aria-label="Toggle Dark or Light Mode"
+            title="Switch Dark / Light Theme"
+            class="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/70 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+          >
+            <svg
+              id="themeSunIcon"
+              class="w-4 h-4 text-amber-400"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="12" r="4"></circle>
+              <path
+                stroke-linecap="round"
+                d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"
+              ></path>
+            </svg>
+            <svg
+              id="themeMoonIcon"
+              class="hidden w-4 h-4 text-indigo-600"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+              ></path>
+            </svg>
+            <span id="themeToggleText" class="hidden sm:inline">Light</span>
+          </button>
         </div>
       </div>
-    </section>
+    </header>
 
-    <!-- Universal Compression Settings & Totals -->
-    <section id="universalSettingsSection" class="hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm p-5 sm:p-6 space-y-5 animate-fade-up">
+    <!-- Workspace -->
+    <main
+      class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6"
+    >
+      <!-- Upload Zone -->
+      <section id="uploadSection">
+        <div
+          id="dropZone"
+          class="group relative bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-400 rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-200 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 shadow-sm"
+        >
+          <input
+            id="fileInput"
+            type="file"
+            accept="image/png,image/gif,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime,.png,.gif,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.m4v"
+            multiple
+            class="hidden"
+          />
 
-      <!-- Batch Totals Bar -->
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl px-4 py-3.5 border border-slate-200/70 dark:border-slate-700/70 overflow-x-auto">
-        <div class="flex items-center justify-between md:justify-start gap-2.5 whitespace-nowrap shrink-0">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 whitespace-nowrap">Current Total</span>
-          <span id="totalBeforeText" class="font-mono font-bold text-sm sm:text-base text-slate-900 dark:text-white whitespace-nowrap">
-            0.00 MB (0.0 KB)
-          </span>
+          <div class="w-full mx-auto flex flex-col items-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-all duration-200 group-hover:scale-105 mb-3.5"
+            >
+              <svg
+                class="w-7 h-7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+            </div>
+
+            <h1
+              class="text-xs sm:text-base md:text-lg font-bold text-slate-900 dark:text-white whitespace-nowrap"
+            >
+              Drop PNGs, GIFs, Images, or Videos here, or
+              <span
+                class="text-indigo-600 dark:text-indigo-400 underline decoration-indigo-400/60 underline-offset-4"
+                >browse</span
+              >
+            </h1>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+              LZW Delta-Frame Optimization • Built-in subpixel zoom & pan
+              inspection
+            </p>
+          </div>
         </div>
+      </section>
 
-        <div class="hidden md:block h-5 w-px bg-slate-200/90 dark:bg-slate-700 shrink-0"></div>
-
-        <div class="flex items-center justify-between md:justify-end gap-2.5 whitespace-nowrap shrink-0 border-t md:border-t-0 border-slate-200/70 dark:border-slate-700/70 pt-2.5 md:pt-0">
-          <span id="totalAfterLabel" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 whitespace-nowrap">Expected Total</span>
-          <div class="flex items-center gap-2 whitespace-nowrap shrink-0">
-            <span id="totalAfterText" class="font-mono font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+      <!-- Universal Compression Settings & Totals -->
+      <section
+        id="universalSettingsSection"
+        class="hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm p-5 sm:p-6 space-y-5 animate-fade-up"
+      >
+        <!-- Batch Totals Bar -->
+        <div
+          class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl px-4 py-3.5 border border-slate-200/70 dark:border-slate-700/70 overflow-x-auto"
+        >
+          <div
+            class="flex items-center justify-between md:justify-start gap-2.5 whitespace-nowrap shrink-0"
+          >
+            <span
+              class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 whitespace-nowrap"
+              >Current Total</span
+            >
+            <span
+              id="totalBeforeText"
+              class="font-mono font-bold text-sm sm:text-base text-slate-900 dark:text-white whitespace-nowrap"
+            >
               0.00 MB (0.0 KB)
             </span>
-            <span id="totalSavedBadge" class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0">
-              -0%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Universal Slider Cap -->
-      <div class="space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <label for="universalSlider" class="text-sm font-bold text-slate-900 dark:text-white">
-              Max File Size Cap
-            </label>
-            <p id="sliderSubtext" class="text-xs text-slate-400 dark:text-slate-400">Strictly bounded by your largest uploaded file</p>
           </div>
 
-          <!-- Synchronized Direct MB & KB Inputs -->
-          <div class="flex items-center gap-2">
-            <div class="relative flex items-center">
-              <input
-                id="directMbInput"
-                type="number"
-                min="0.01"
-                max="50"
-                step="0.001"
-                value="1.00"
-                aria-label="Max size in MB"
-                class="w-28 bg-slate-50 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 font-mono font-bold text-sm text-slate-900 dark:text-white rounded-xl px-3 py-2 pr-10 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none transition-all"
-              />
-              <span class="absolute right-2.5 text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400">MB</span>
-            </div>
-
-            <span class="text-slate-300 dark:text-slate-600 font-mono text-xs">=</span>
-
-            <div class="relative flex items-center">
-              <input
-                id="directKbInput"
-                type="number"
-                min="10"
-                max="51200"
-                step="1"
-                value="1024"
-                aria-label="Max size in KB"
-                class="w-32 bg-slate-50 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 font-mono font-bold text-sm text-slate-900 dark:text-white rounded-xl px-3 py-2 pr-10 border border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:outline-none transition-all"
-              />
-              <span class="absolute right-2.5 text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">KB</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slider Track -->
-        <div class="py-1">
-          <input
-            id="universalSlider"
-            type="range"
-            min="0.01"
-            max="5.00"
-            step="0.001"
-            value="1.00"
-            class="universal-slider"
-          />
-        </div>
-
-        <!-- Quick Preset Tiles -->
-        <div class="space-y-2 pt-1">
-          <span class="text-xs font-semibold text-slate-400 dark:text-slate-400 block">Quick Presets</span>
-          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-            <button
-              type="button"
-              data-kb="50"
-              data-mb="0.049"
-              class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
-            >
-              <span class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white">50 KB</span>
-              <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">0.049 MB</span>
-            </button>
-
-            <button
-              type="button"
-              data-kb="100"
-              data-mb="0.098"
-              class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
-            >
-              <span class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white">100 KB</span>
-              <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">0.098 MB</span>
-            </button>
-
-            <button
-              type="button"
-              data-kb="150"
-              data-mb="0.146"
-              class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
-            >
-              <span class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white">150 KB</span>
-              <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">0.146 MB</span>
-            </button>
-
-            <button
-              type="button"
-              data-kb="256"
-              data-mb="0.25"
-              class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
-            >
-              <span class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white">256 KB</span>
-              <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">0.25 MB</span>
-            </button>
-
-            <button
-              type="button"
-              data-kb="512"
-              data-mb="0.50"
-              class="preset-btn col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
-            >
-              <span class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white">512 KB</span>
-              <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">0.50 MB</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Buttons Row -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <button
-            id="downloadAllBtn"
-            type="button"
-            class="hidden items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-sm transition-all active:scale-95 whitespace-nowrap cursor-pointer"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span>Download All</span>
-          </button>
-
-          <button
-            id="compressAllBtn"
-            type="button"
-            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 whitespace-nowrap cursor-pointer"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span id="compressBtnText">Compress All</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- File List Section -->
-    <section id="filesSection" class="hidden space-y-3">
-      <div id="fileListContainer" class="space-y-3"></div>
-    </section>
-
-  </main>
-
-  <!-- DIFF MODAL WITH REAL-TIME ZOOM & PAN CONTROLS -->
-  <div
-    id="diffModalOverlay"
-    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-2 sm:p-5"
-  >
-    <div
-      id="diffModalCard"
-      class="bg-white dark:bg-slate-900 w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden animate-modal-pop flex flex-col max-h-[95vh]"
-    >
-      <!-- Top Bar: Metrics & Controls -->
-      <div class="relative flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-100 dark:border-slate-800 gap-2 shrink-0">
-        <!-- Before / After Metrics -->
-        <div class="grid grid-cols-2 gap-2 text-left sm:text-center w-full sm:w-auto">
-          <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-            <span>Before: </span>
-            <strong id="modalBeforeSize" class="font-extrabold text-slate-950 dark:text-white font-mono">0.00 MB</strong>
-          </div>
-          <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-            <span>After: </span>
-            <strong id="modalAfterSize" class="font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">0.00 MB (-0%)</strong>
-          </div>
-        </div>
-
-        <!-- Zoom Control Toolbar -->
-        <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
-          <button
-            id="zoomOutBtn"
-            type="button"
-            title="Zoom Out (Mouse Wheel Down)"
-            class="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-sm shadow-sm transition-all"
-          >
-            -
-          </button>
-          <span id="zoomLevelDisplay" class="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 w-12 text-center select-none">
-            100%
-          </span>
-          <button
-            id="zoomInBtn"
-            type="button"
-            title="Zoom In (Mouse Wheel Up)"
-            class="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-sm shadow-sm transition-all"
-          >
-            +
-          </button>
-          <button
-            id="zoomResetBtn"
-            type="button"
-            title="Reset Zoom & Pan"
-            class="text-[11px] font-semibold px-2 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-all ml-1"
-          >
-            1x
-          </button>
-        </div>
-
-        <button
-          id="closeModalBtn"
-          type="button"
-          class="absolute right-4 top-3 sm:top-1/2 sm:-translate-y-1/2 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all cursor-pointer"
-          title="Close preview"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Viewport Instruction Banner -->
-      <div class="px-4 py-1.5 bg-indigo-50/60 dark:bg-indigo-950/30 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 select-none">
-        <span class="flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-          </svg>
-          Scroll to zoom • Click & drag to pan zoomed areas • Drag center pill for Before / After
-        </span>
-        <span id="panStatus" class="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 hidden sm:inline">1.0x</span>
-      </div>
-
-      <!-- Interactive Split Media Viewport -->
-      <div class="p-2 sm:p-4 bg-slate-50 dark:bg-slate-950/60 flex-1 overflow-hidden">
-        <div
-          id="modalDiffViewport"
-          class="diff-viewport relative w-full h-[320px] sm:h-[480px] md:h-[540px] rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-inner checkerboard cursor-ew-resize"
-        >
-          <!-- AFTER COMPRESSED MEDIA (BASE LAYER IN TRANSFORM WRAPPER) -->
-          <div id="modalAfterContainer" class="absolute inset-0 pointer-events-none origin-top-left transition-transform duration-75">
-            <img
-              id="modalAfterImg"
-              src=""
-              alt="After Compressed"
-              class="w-full h-full object-contain pointer-events-none"
-              draggable="false"
-            />
-            <video
-              id="modalAfterVideo"
-              class="hidden w-full h-full object-contain pointer-events-none"
-              muted
-              loop
-              playsinline
-            ></video>
-          </div>
-
-          <!-- BEFORE ORIGINAL MEDIA (CLIPPED LEFT LAYER) -->
           <div
-            id="modalBeforeClip"
-            class="absolute inset-y-0 left-0 overflow-hidden pointer-events-none"
-            style="width: 50%;"
+            class="hidden md:block h-5 w-px bg-slate-200/90 dark:bg-slate-700 shrink-0"
+          ></div>
+
+          <div
+            class="flex items-center justify-between md:justify-end gap-2.5 whitespace-nowrap shrink-0 border-t md:border-t-0 border-slate-200/70 dark:border-slate-700/70 pt-2.5 md:pt-0"
           >
-            <div id="modalBeforeContainer" class="absolute top-0 left-0 pointer-events-none origin-top-left transition-transform duration-75">
+            <span
+              id="totalAfterLabel"
+              class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 whitespace-nowrap"
+              >Expected Total</span
+            >
+            <div class="flex items-center gap-2 whitespace-nowrap shrink-0">
+              <span
+                id="totalAfterText"
+                class="font-mono font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 whitespace-nowrap"
+              >
+                0.00 MB (0.0 KB)
+              </span>
+              <span
+                id="totalSavedBadge"
+                class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0"
+              >
+                -0%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Universal Slider Cap -->
+        <div class="space-y-4">
+          <div
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+          >
+            <div>
+              <label
+                for="universalSlider"
+                class="text-sm font-bold text-slate-900 dark:text-white"
+              >
+                Max File Size Cap
+              </label>
+              <p
+                id="sliderSubtext"
+                class="text-xs text-slate-400 dark:text-slate-400"
+              >
+                Strictly bounded by your largest uploaded file
+              </p>
+            </div>
+
+            <!-- Synchronized Direct MB & KB Inputs -->
+            <div class="flex items-center gap-2">
+              <div class="relative flex items-center">
+                <input
+                  id="directMbInput"
+                  type="number"
+                  min="0.01"
+                  max="50"
+                  step="0.001"
+                  value="1.00"
+                  aria-label="Max size in MB"
+                  class="w-28 bg-slate-50 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 font-mono font-bold text-sm text-slate-900 dark:text-white rounded-xl px-3 py-2 pr-10 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none transition-all"
+                />
+                <span
+                  class="absolute right-2.5 text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400"
+                  >MB</span
+                >
+              </div>
+
+              <span class="text-slate-300 dark:text-slate-600 font-mono text-xs"
+                >=</span
+              >
+
+              <div class="relative flex items-center">
+                <input
+                  id="directKbInput"
+                  type="number"
+                  min="10"
+                  max="51200"
+                  step="1"
+                  value="1024"
+                  aria-label="Max size in KB"
+                  class="w-32 bg-slate-50 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 font-mono font-bold text-sm text-slate-900 dark:text-white rounded-xl px-3 py-2 pr-10 border border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:outline-none transition-all"
+                />
+                <span
+                  class="absolute right-2.5 text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400"
+                  >KB</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Slider Track -->
+          <div class="py-1">
+            <input
+              id="universalSlider"
+              type="range"
+              min="0.01"
+              max="5.00"
+              step="0.001"
+              value="1.00"
+              class="universal-slider"
+            />
+          </div>
+
+          <!-- Quick Preset Tiles -->
+          <div class="space-y-2 pt-1">
+            <span
+              class="text-xs font-semibold text-slate-400 dark:text-slate-400 block"
+              >Quick Presets</span
+            >
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              <button
+                type="button"
+                data-kb="50"
+                data-mb="0.049"
+                class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
+              >
+                <span
+                  class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white"
+                  >50 KB</span
+                >
+                <span
+                  class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"
+                  >0.049 MB</span
+                >
+              </button>
+
+              <button
+                type="button"
+                data-kb="100"
+                data-mb="0.098"
+                class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
+              >
+                <span
+                  class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white"
+                  >100 KB</span
+                >
+                <span
+                  class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"
+                  >0.098 MB</span
+                >
+              </button>
+
+              <button
+                type="button"
+                data-kb="150"
+                data-mb="0.146"
+                class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
+              >
+                <span
+                  class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white"
+                  >150 KB</span
+                >
+                <span
+                  class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"
+                  >0.146 MB</span
+                >
+              </button>
+
+              <button
+                type="button"
+                data-kb="256"
+                data-mb="0.25"
+                class="preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
+              >
+                <span
+                  class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white"
+                  >256 KB</span
+                >
+                <span
+                  class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"
+                  >0.25 MB</span
+                >
+              </button>
+
+              <button
+                type="button"
+                data-kb="512"
+                data-mb="0.50"
+                class="preset-btn col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer"
+              >
+                <span
+                  class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white"
+                  >512 KB</span
+                >
+                <span
+                  class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"
+                  >0.50 MB</span
+                >
+              </button>
+            </div>
+          </div>
+
+          <!-- Buttons Row -->
+          <div
+            class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800"
+          >
+            <button
+              id="downloadAllBtn"
+              type="button"
+              class="hidden items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-sm transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.3"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+              <span>Download All</span>
+            </button>
+
+            <button
+              id="compressAllBtn"
+              type="button"
+              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 whitespace-nowrap cursor-pointer"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              <span id="compressBtnText">Compress All</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- File List Section -->
+      <section id="filesSection" class="hidden space-y-3">
+        <div id="fileListContainer" class="space-y-3"></div>
+      </section>
+    </main>
+
+    <!-- DIFF MODAL WITH REAL-TIME ZOOM & PAN CONTROLS -->
+    <div
+      id="diffModalOverlay"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-2 sm:p-5"
+    >
+      <div
+        id="diffModalCard"
+        class="bg-white dark:bg-slate-900 w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden animate-modal-pop flex flex-col max-h-[95vh]"
+      >
+        <!-- Top Bar: Metrics & Controls -->
+        <div
+          class="relative flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-100 dark:border-slate-800 gap-2 shrink-0"
+        >
+          <!-- Before / After Metrics -->
+          <div
+            class="grid grid-cols-2 gap-2 text-left sm:text-center w-full sm:w-auto"
+          >
+            <div
+              class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap"
+            >
+              <span>Before: </span>
+              <strong
+                id="modalBeforeSize"
+                class="font-extrabold text-slate-950 dark:text-white font-mono"
+                >0.00 MB</strong
+              >
+            </div>
+            <div
+              class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap"
+            >
+              <span>After: </span>
+              <strong
+                id="modalAfterSize"
+                class="font-extrabold text-emerald-600 dark:text-emerald-400 font-mono"
+                >0.00 MB (-0%)</strong
+              >
+            </div>
+          </div>
+
+          <!-- Zoom Control Toolbar -->
+          <div
+            class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700"
+          >
+            <button
+              id="zoomOutBtn"
+              type="button"
+              title="Zoom Out (Mouse Wheel Down)"
+              class="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-sm shadow-sm transition-all"
+            >
+              -
+            </button>
+            <span
+              id="zoomLevelDisplay"
+              class="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 w-12 text-center select-none"
+            >
+              100%
+            </span>
+            <button
+              id="zoomInBtn"
+              type="button"
+              title="Zoom In (Mouse Wheel Up)"
+              class="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-sm shadow-sm transition-all"
+            >
+              +
+            </button>
+            <button
+              id="zoomResetBtn"
+              type="button"
+              title="Reset Zoom & Pan"
+              class="text-[11px] font-semibold px-2 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-all ml-1"
+            >
+              1x
+            </button>
+          </div>
+
+          <button
+            id="closeModalBtn"
+            type="button"
+            class="absolute right-4 top-3 sm:top-1/2 sm:-translate-y-1/2 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+            title="Close preview"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Viewport Instruction Banner -->
+        <div
+          class="px-4 py-1.5 bg-indigo-50/60 dark:bg-indigo-950/30 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 select-none"
+        >
+          <span class="flex items-center gap-1.5">
+            <svg
+              class="w-3.5 h-3.5 text-indigo-500"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+              />
+            </svg>
+            Scroll to zoom • Click & drag to pan zoomed areas • Drag center pill
+            for Before / After
+          </span>
+          <span
+            id="panStatus"
+            class="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 hidden sm:inline"
+            >1.0x</span
+          >
+        </div>
+
+        <!-- Interactive Split Media Viewport -->
+        <div
+          class="p-2 sm:p-4 bg-slate-50 dark:bg-slate-950/60 flex-1 overflow-hidden"
+        >
+          <div
+            id="modalDiffViewport"
+            class="diff-viewport relative w-full h-[320px] sm:h-[480px] md:h-[540px] rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-inner checkerboard cursor-ew-resize"
+          >
+            <!-- AFTER COMPRESSED MEDIA (BASE LAYER IN TRANSFORM WRAPPER) -->
+            <div
+              id="modalAfterContainer"
+              class="absolute inset-0 pointer-events-none origin-top-left transition-transform duration-75"
+            >
               <img
-                id="modalBeforeImg"
+                id="modalAfterImg"
                 src=""
-                alt="Before Original"
+                alt="After Compressed"
                 class="w-full h-full object-contain pointer-events-none"
                 draggable="false"
               />
               <video
-                id="modalBeforeVideo"
+                id="modalAfterVideo"
                 class="hidden w-full h-full object-contain pointer-events-none"
                 muted
                 loop
                 playsinline
               ></video>
             </div>
-          </div>
 
-          <!-- Divider Line -->
-          <div
-            id="modalDividerLine"
-            class="absolute inset-y-0 w-[2.5px] bg-white shadow-[0_0_10px_rgba(0,0,0,0.45)] pointer-events-none z-20"
-            style="left: 50%; transform: translateX(-50%);"
-          ></div>
+            <!-- BEFORE ORIGINAL MEDIA (CLIPPED LEFT LAYER) -->
+            <div
+              id="modalBeforeClip"
+              class="absolute inset-y-0 left-0 overflow-hidden pointer-events-none"
+              style="width: 50%"
+            >
+              <div
+                id="modalBeforeContainer"
+                class="absolute top-0 left-0 pointer-events-none origin-top-left transition-transform duration-75"
+              >
+                <img
+                  id="modalBeforeImg"
+                  src=""
+                  alt="Before Original"
+                  class="w-full h-full object-contain pointer-events-none"
+                  draggable="false"
+                />
+                <video
+                  id="modalBeforeVideo"
+                  class="hidden w-full h-full object-contain pointer-events-none"
+                  muted
+                  loop
+                  playsinline
+                ></video>
+              </div>
+            </div>
 
-          <!-- Divider Handle -->
-          <div
-            id="modalDividerHandle"
-            class="diff-handle absolute top-1/2 z-30 w-11 h-11 rounded-full bg-white text-slate-800 shadow-[0_4px_16px_rgba(0,0,0,0.32)] border border-slate-200 flex items-center justify-center pointer-events-auto cursor-ew-resize"
-            style="left: 50%; transform: translate(-50%, -50%);"
-          >
-            <svg class="w-5 h-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 17 4 12 9 7"></polyline>
-              <polyline points="15 7 20 12 15 17"></polyline>
-            </svg>
+            <!-- Divider Line -->
+            <div
+              id="modalDividerLine"
+              class="absolute inset-y-0 w-[2.5px] bg-white shadow-[0_0_10px_rgba(0,0,0,0.45)] pointer-events-none z-20"
+              style="left: 50%; transform: translateX(-50%)"
+            ></div>
+
+            <!-- Divider Handle -->
+            <div
+              id="modalDividerHandle"
+              class="diff-handle absolute top-1/2 z-30 w-11 h-11 rounded-full bg-white text-slate-800 shadow-[0_4px_16px_rgba(0,0,0,0.32)] border border-slate-200 flex items-center justify-center pointer-events-auto cursor-ew-resize"
+              style="left: 50%; transform: translate(-50%, -50%)"
+            >
+              <svg
+                class="w-5 h-5 text-slate-700"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="9 17 4 12 9 7"></polyline>
+                <polyline points="15 7 20 12 15 17"></polyline>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <div
+      id="toastContainer"
+      class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+    ></div>
 
-  <script>
-    /*************************************************************************
-     * 0. THEME SWITCHER
-     *************************************************************************/
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const themeSunIcon = document.getElementById('themeSunIcon');
-    const themeMoonIcon = document.getElementById('themeMoonIcon');
-    const themeToggleText = document.getElementById('themeToggleText');
+    <script>
+      /*************************************************************************
+       * 0. THEME SWITCHER
+       *************************************************************************/
+      const themeToggleBtn = document.getElementById("themeToggleBtn");
+      const themeSunIcon = document.getElementById("themeSunIcon");
+      const themeMoonIcon = document.getElementById("themeMoonIcon");
+      const themeToggleText = document.getElementById("themeToggleText");
 
-    function syncThemeIcons() {
-      const isDark = document.documentElement.classList.contains('dark');
-      if (isDark) {
-        themeSunIcon.classList.remove('hidden');
-        themeMoonIcon.classList.add('hidden');
-        themeToggleText.textContent = 'Light';
-      } else {
-        themeSunIcon.classList.add('hidden');
-        themeMoonIcon.classList.remove('hidden');
-        themeToggleText.textContent = 'Dark';
+      function syncThemeIcons() {
+        const isDark = document.documentElement.classList.contains("dark");
+        if (isDark) {
+          themeSunIcon.classList.remove("hidden");
+          themeMoonIcon.classList.add("hidden");
+          themeToggleText.textContent = "Light";
+        } else {
+          themeSunIcon.classList.add("hidden");
+          themeMoonIcon.classList.remove("hidden");
+          themeToggleText.textContent = "Dark";
+        }
       }
-    }
 
-    themeToggleBtn.addEventListener('click', (e) => {
-      const rect = themeToggleBtn.getBoundingClientRect();
-      const x = e.clientX || rect.left + rect.width / 2;
-      const y = e.clientY || rect.top + rect.height / 2;
-      const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y)
-      );
+      themeToggleBtn.addEventListener("click", (e) => {
+        const rect = themeToggleBtn.getBoundingClientRect();
+        const x = e.clientX || rect.left + rect.width / 2;
+        const y = e.clientY || rect.top + rect.height / 2;
+        const endRadius = Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y),
+        );
 
-      const applyThemeToggle = () => {
-        document.documentElement.classList.toggle('dark');
-        syncThemeIcons();
+        const applyThemeToggle = () => {
+          document.documentElement.classList.toggle("dark");
+          syncThemeIcons();
+        };
+
+        if (document.startViewTransition) {
+          const transition = document.startViewTransition(() => {
+            applyThemeToggle();
+          });
+          transition.ready.then(() => {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${endRadius}px at ${x}px ${y}px)`,
+                ],
+              },
+              {
+                duration: 580,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                pseudoElement: "::view-transition-new(root)",
+              },
+            );
+          });
+        } else {
+          applyThemeToggle();
+        }
+      });
+
+      syncThemeIcons();
+
+      /*************************************************************************
+       * 1. STATE & UNIT FORMATTERS
+       *************************************************************************/
+      const BYTES_KB = 1024;
+      const BYTES_MB = 1024 * 1024;
+
+      const state = {
+        files: [],
+        targetMaxMB: 0.25,
+        isRunningBatch: false,
+        activeModalItemId: null,
+        modalSplitPct: 50,
+        zoom: 1.0,
+        panX: 0,
+        panY: 0,
       };
 
-      if (document.startViewTransition) {
-        const transition = document.startViewTransition(() => {
-          applyThemeToggle();
+      function formatMBAndKB(bytes) {
+        const safe = Math.max(0, Number(bytes) || 0);
+        const mb = (safe / BYTES_MB).toFixed(2);
+        const kb = (safe / BYTES_KB).toLocaleString("en-US", {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
         });
-        transition.ready.then(() => {
-          document.documentElement.animate(
-            {
-              clipPath: [
-                `circle(0px at ${x}px ${y}px)`,
-                `circle(${endRadius}px at ${x}px ${y}px)`,
-              ],
-            },
-            {
-              duration: 580,
-              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-              pseudoElement: '::view-transition-new(root)',
-            }
-          );
+        return `${mb} MB (${kb} KB)`;
+      }
+
+      function formatTimeRemaining(seconds) {
+        const s = Math.max(0, Math.ceil(seconds));
+        const mins = Math.floor(s / 60)
+          .toString()
+          .padStart(2, "0");
+        const secs = (s % 60).toString().padStart(2, "0");
+        return `${mins}:${secs}`;
+      }
+
+      function getExpectedBytes(item) {
+        const targetCapBytes = state.targetMaxMB * BYTES_MB;
+        const ratio = item.isVideo ? 0.68 : item.kind === "GIF" ? 0.55 : 0.7;
+        const naturalReduction = Math.round(item.originalSize * ratio);
+        return Math.max(1024, Math.min(targetCapBytes, naturalReduction));
+      }
+
+      function showToast(msg) {
+        const container = document.getElementById("toastContainer");
+        const el = document.createElement("div");
+        el.className =
+          "pointer-events-auto bg-slate-900 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl shadow-lg transition-all duration-200 opacity-0 translate-y-1";
+        el.textContent = msg;
+        container.appendChild(el);
+        requestAnimationFrame(() =>
+          el.classList.remove("opacity-0", "translate-y-1"),
+        );
+        setTimeout(() => {
+          el.classList.add("opacity-0", "translate-y-1");
+          setTimeout(() => el.remove(), 220);
+        }, 2600);
+      }
+
+      /*************************************************************************
+       * 2. FILE INGESTION & BOUNDED SLIDER CAP MANAGEMENT
+       *************************************************************************/
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      document
+        .getElementById("addMoreBtn")
+        .addEventListener("click", () => fileInput.click());
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files.length) {
+          addFilesToQueue(e.target.files);
+          fileInput.value = "";
+        }
+      });
+
+      ["dragenter", "dragover"].forEach((evt) => {
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add("border-indigo-500", "bg-indigo-50/40");
         });
-      } else {
-        applyThemeToggle();
-      }
-    });
-
-    syncThemeIcons();
-
-    /*************************************************************************
-     * 1. STATE & UNIT FORMATTERS
-     *************************************************************************/
-    const BYTES_KB = 1024;
-    const BYTES_MB = 1024 * 1024;
-
-    const state = {
-      files: [],
-      targetMaxMB: 0.25,
-      isRunningBatch: false,
-      activeModalItemId: null,
-      modalSplitPct: 50,
-      zoom: 1.0,
-      panX: 0,
-      panY: 0,
-    };
-
-    function formatMBAndKB(bytes) {
-      const safe = Math.max(0, Number(bytes) || 0);
-      const mb = (safe / BYTES_MB).toFixed(2);
-      const kb = (safe / BYTES_KB).toLocaleString('en-US', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
       });
-      return `${mb} MB (${kb} KB)`;
-    }
 
-    function formatTimeRemaining(seconds) {
-      const s = Math.max(0, Math.ceil(seconds));
-      const mins = Math.floor(s / 60).toString().padStart(2, '0');
-      const secs = (s % 60).toString().padStart(2, '0');
-      return `${mins}:${secs}`;
-    }
-
-    function getExpectedBytes(item) {
-      const targetCapBytes = state.targetMaxMB * BYTES_MB;
-      const ratio = item.isVideo ? 0.68 : (item.kind === 'GIF' ? 0.55 : 0.70);
-      const naturalReduction = Math.round(item.originalSize * ratio);
-      return Math.max(1024, Math.min(targetCapBytes, naturalReduction));
-    }
-
-    function showToast(msg) {
-      const container = document.getElementById('toastContainer');
-      const el = document.createElement('div');
-      el.className =
-        'pointer-events-auto bg-slate-900 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl shadow-lg transition-all duration-200 opacity-0 translate-y-1';
-      el.textContent = msg;
-      container.appendChild(el);
-      requestAnimationFrame(() => el.classList.remove('opacity-0', 'translate-y-1'));
-      setTimeout(() => {
-        el.classList.add('opacity-0', 'translate-y-1');
-        setTimeout(() => el.remove(), 220);
-      }, 2600);
-    }
-
-    /*************************************************************************
-     * 2. FILE INGESTION & BOUNDED SLIDER CAP MANAGEMENT
-     *************************************************************************/
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-
-    dropZone.addEventListener('click', () => fileInput.click());
-    document.getElementById('addMoreBtn').addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files.length) {
-        addFilesToQueue(e.target.files);
-        fileInput.value = '';
-      }
-    });
-
-    ['dragenter', 'dragover'].forEach((evt) => {
-      dropZone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.add('border-indigo-500', 'bg-indigo-50/40');
+      ["dragleave", "drop"].forEach((evt) => {
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove("border-indigo-500", "bg-indigo-50/40");
+        });
       });
-    });
 
-    ['dragleave', 'drop'].forEach((evt) => {
-      dropZone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+      dropZone.addEventListener("drop", (e) => {
+        if (
+          e.dataTransfer &&
+          e.dataTransfer.files &&
+          e.dataTransfer.files.length
+        ) {
+          addFilesToQueue(e.dataTransfer.files);
+        }
       });
-    });
 
-    dropZone.addEventListener('drop', (e) => {
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
-        addFilesToQueue(e.dataTransfer.files);
+      function detectKind(file) {
+        const name = file.name.toLowerCase();
+        const type = (file.type || "").toLowerCase();
+        if (type === "image/gif" || name.endsWith(".gif")) return "GIF";
+        if (type === "image/png" || name.endsWith(".png")) return "PNG";
+        if (type === "image/webp" || name.endsWith(".webp")) return "WEBP";
+        if (
+          type === "image/jpeg" ||
+          name.endsWith(".jpg") ||
+          name.endsWith(".jpeg")
+        )
+          return "JPG";
+        if (
+          type === "video/mp4" ||
+          name.endsWith(".mp4") ||
+          name.endsWith(".m4v")
+        )
+          return "MP4";
+        if (type === "video/webm" || name.endsWith(".webm")) return "WEBM";
+        if (type === "video/quicktime" || name.endsWith(".mov")) return "MOV";
+        return null;
       }
-    });
 
-    function detectKind(file) {
-      const name = file.name.toLowerCase();
-      const type = (file.type || '').toLowerCase();
-      if (type === 'image/gif' || name.endsWith('.gif')) return 'GIF';
-      if (type === 'image/png' || name.endsWith('.png')) return 'PNG';
-      if (type === 'image/webp' || name.endsWith('.webp')) return 'WEBP';
-      if (type === 'image/jpeg' || name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'JPG';
-      if (type === 'video/mp4' || name.endsWith('.mp4') || name.endsWith('.m4v')) return 'MP4';
-      if (type === 'video/webm' || name.endsWith('.webm')) return 'WEBM';
-      if (type === 'video/quicktime' || name.endsWith('.mov')) return 'MOV';
-      return null;
-    }
+      function generateVideoPoster(videoUrl) {
+        return new Promise((resolve) => {
+          const vid = document.createElement("video");
+          vid.preload = "metadata";
+          vid.muted = true;
+          vid.playsInline = true;
+          vid.src = videoUrl;
 
-    function generateVideoPoster(videoUrl) {
-      return new Promise((resolve) => {
-        const vid = document.createElement('video');
-        vid.preload = 'metadata';
-        vid.muted = true;
-        vid.playsInline = true;
-        vid.src = videoUrl;
+          const cleanup = () => {
+            vid.removeAttribute("src");
+            vid.load();
+          };
 
-        const cleanup = () => {
-          vid.removeAttribute('src');
-          vid.load();
-        };
-
-        const timeout = setTimeout(() => {
-          cleanup();
-          resolve(null);
-        }, 3500);
-
-        vid.addEventListener('loadeddata', () => {
-          vid.currentTime = Math.min(0.25, (vid.duration || 1) * 0.1);
-        }, { once: true });
-
-        vid.addEventListener('seeked', () => {
-          clearTimeout(timeout);
-          try {
-            const c = document.createElement('canvas');
-            c.width = Math.max(64, Math.min(320, vid.videoWidth || 160));
-            c.height = Math.max(64, Math.min(320, vid.videoHeight || 160));
-            c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
-            const dataUrl = c.toDataURL('image/jpeg', 0.8);
-            cleanup();
-            resolve(dataUrl);
-          } catch (e) {
+          const timeout = setTimeout(() => {
             cleanup();
             resolve(null);
-          }
-        }, { once: true });
+          }, 3500);
 
-        vid.addEventListener('error', () => {
-          clearTimeout(timeout);
-          cleanup();
-          resolve(null);
-        }, { once: true });
-      });
-    }
+          vid.addEventListener(
+            "loadeddata",
+            () => {
+              vid.currentTime = Math.min(0.25, (vid.duration || 1) * 0.1);
+            },
+            { once: true },
+          );
 
-    async function addFilesToQueue(fileList) {
-      const incoming = Array.from(fileList);
-      let addedCount = 0;
-
-      for (const file of incoming) {
-        const kind = detectKind(file);
-        if (!kind) continue;
-
-        const isVideo = kind === 'MP4' || kind === 'WEBM' || kind === 'MOV';
-        const id = 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-        const originalUrl = URL.createObjectURL(file);
-        const posterUrl = isVideo ? await generateVideoPoster(originalUrl) : null;
-
-        state.files.push({
-          id,
-          file,
-          name: file.name,
-          kind,
-          isVideo,
-          posterUrl,
-          originalSize: file.size,
-          originalUrl,
-          status: 'idle',
-          progress: 0,
-          startTime: null,
-          etaText: '--:--',
-          compressedBlob: null,
-          compressedUrl: null,
-          compressedSize: null,
-          outputExt: null,
-        });
-        addedCount++;
-      }
-
-      if (addedCount === 0) {
-        showToast('Please select PNG, GIF, JPG, WEBP, MP4, WebM, or MOV files.');
-        return;
-      }
-
-      recalculateSliderBounds(true);
-      renderWorkspace();
-    }
-
-    function recalculateSliderBounds(isNewUpload = false) {
-      if (state.files.length === 0) return;
-      const largestFileBytes = Math.max(...state.files.map((f) => f.originalSize));
-      const largestFileMB = Math.max(0.049, largestFileBytes / BYTES_MB);
-
-      const slider = document.getElementById('universalSlider');
-      const mbInput = document.getElementById('directMbInput');
-      const kbInput = document.getElementById('directKbInput');
-
-      const maxCapMB = Number(largestFileMB.toFixed(3));
-      slider.max = maxCapMB.toString();
-      mbInput.max = maxCapMB.toString();
-      kbInput.max = Math.round(maxCapMB * 1024).toString();
-
-      document.getElementById('sliderSubtext').textContent =
-        `Maximum cap bounded to ${formatMBAndKB(largestFileBytes)}`;
-
-      if (isNewUpload) {
-        const smartDefaultMB = Math.min(maxCapMB * 0.50, 0.50);
-        setUniversalTargetMB(Math.max(0.049, smartDefaultMB), 'auto');
-      } else if (state.targetMaxMB > maxCapMB) {
-        setUniversalTargetMB(maxCapMB, 'auto');
-      } else {
-        syncUniversalSliderUI();
-      }
-    }
-
-    /*************************************************************************
-     * 3. UNIVERSAL SLIDER & SYNCHRONIZED CONTROLS
-     *************************************************************************/
-    const universalSlider = document.getElementById('universalSlider');
-    const directMbInput = document.getElementById('directMbInput');
-    const directKbInput = document.getElementById('directKbInput');
-
-    function formatDisplayMB(mb) {
-      if (mb < 0.2) return Number(mb.toFixed(3)).toString();
-      return mb.toFixed(2);
-    }
-
-    function setUniversalTargetMB(mbValue, source, exactPresetMB = null) {
-      const maxAllowed = parseFloat(universalSlider.max) || 20;
-      const clamped = Math.max(0.01, Math.min(maxAllowed, Number(mbValue) || 1.0));
-      state.targetMaxMB = clamped;
-
-      const kbValue = (clamped * BYTES_MB) / BYTES_KB;
-
-      if (source !== 'slider') {
-        universalSlider.value = clamped.toFixed(3);
-      }
-      if (source !== 'mb') {
-        directMbInput.value = exactPresetMB !== null ? exactPresetMB : formatDisplayMB(clamped);
-      }
-      if (source !== 'kb') {
-        directKbInput.value = Number(kbValue.toFixed(1));
-      }
-
-      syncUniversalSliderUI();
-      updateTotalsAndCardsLive();
-    }
-
-    function syncUniversalSliderUI() {
-      const min = parseFloat(universalSlider.min) || 0.01;
-      const max = parseFloat(universalSlider.max) || 5.0;
-      const pct = Math.max(0, Math.min(100, ((state.targetMaxMB - min) / (max - min)) * 100));
-      universalSlider.style.setProperty('--slider-pct', `${pct}%`);
-
-      const currentKB = state.targetMaxMB * 1024;
-      document.querySelectorAll('.preset-btn').forEach((btn) => {
-        const presetKB = parseFloat(btn.getAttribute('data-kb'));
-        const active = Math.abs(presetKB - currentKB) < 2.0;
-        const spanExtra = btn.getAttribute('data-kb') === '512' ? 'col-span-2 sm:col-span-1 ' : '';
-        btn.className = active
-          ? `${spanExtra}preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border-2 border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/80 shadow-sm transition-all text-center cursor-pointer`
-          : `${spanExtra}preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer`;
-      });
-    }
-
-    universalSlider.addEventListener('input', (e) => {
-      setUniversalTargetMB(parseFloat(e.target.value), 'slider');
-    });
-
-    directMbInput.addEventListener('input', (e) => {
-      const v = parseFloat(e.target.value);
-      if (!isNaN(v) && v > 0) setUniversalTargetMB(v, 'mb');
-    });
-
-    directKbInput.addEventListener('input', (e) => {
-      const v = parseFloat(e.target.value);
-      if (!isNaN(v) && v > 0) setUniversalTargetMB(v / 1024, 'kb');
-    });
-
-    document.querySelectorAll('.preset-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const kb = parseFloat(btn.getAttribute('data-kb'));
-        const mbLabel = btn.getAttribute('data-mb');
-        setUniversalTargetMB(kb / 1024, 'preset', mbLabel);
-      });
-    });
-
-    /*************************************************************************
-     * 4. HIGH-PERFORMANCE GIF & MEDIA ENGINES
-     *************************************************************************/
-    function loadImage(url) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = url;
-      });
-    }
-
-    function getSupportedVideoMime(preferredKind) {
-      const mp4Candidates = [
-        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-        'video/mp4;codecs=avc1',
-        'video/mp4',
-      ];
-      const webmCandidates = [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm',
-      ];
-      const list = preferredKind === 'WEBM'
-        ? [...webmCandidates, ...mp4Candidates]
-        : [...mp4Candidates, ...webmCandidates];
-
-      if (typeof window.MediaRecorder !== 'undefined') {
-        for (const mime of list) {
-          if (window.MediaRecorder.isTypeSupported(mime)) {
-            return {
-              mimeType: mime,
-              ext: mime.startsWith('video/mp4') ? 'mp4' : 'webm',
-            };
-          }
-        }
-      }
-      return { mimeType: '', ext: 'webm' };
-    }
-
-    async function compressVideoItem(item, targetMaxBytes, onProgress) {
-      return new Promise((resolve, reject) => {
-        const video = document.createElement('video');
-        video.src = item.originalUrl;
-        video.muted = true;
-        video.playsInline = true;
-        video.preload = 'auto';
-
-        video.onerror = () => reject(new Error('Failed to load video'));
-
-        video.onloadedmetadata = async () => {
-          try {
-            const duration = Math.max(0.5, video.duration || 5);
-            const origW = video.videoWidth || 1280;
-            const origH = video.videoHeight || 720;
-
-            const targetTotalBps = Math.floor((targetMaxBytes * 8 * 0.88) / duration);
-            const videoBps = Math.max(90000, Math.min(8000000, targetTotalBps));
-
-            let scale = 1.0;
-            if (videoBps < 250000) scale = 0.45;
-            else if (videoBps < 500000) scale = 0.6;
-            else if (videoBps < 1000000) scale = 0.75;
-            else if (videoBps < 1800000) scale = 0.88;
-
-            const outW = Math.max(160, Math.round((origW * scale) / 2) * 2);
-            const outH = Math.max(160, Math.round((origH * scale) / 2) * 2);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = outW;
-            canvas.height = outH;
-            const ctx = canvas.getContext('2d');
-
-            const fps = 24;
-            const canvasStream = canvas.captureStream(fps);
-
-            const { mimeType, ext } = getSupportedVideoMime(item.kind);
-            item.outputExt = ext;
-
-            const recorderOptions = { videoBitsPerSecond: videoBps };
-            if (mimeType) recorderOptions.mimeType = mimeType;
-
-            const chunks = [];
-            const recorder = new MediaRecorder(canvasStream, recorderOptions);
-
-            recorder.ondataavailable = (e) => {
-              if (e.data && e.data.size > 0) chunks.push(e.data);
-            };
-
-            let rafId = null;
-            const renderFrame = () => {
-              if (!video.paused && !video.ended) {
-                ctx.drawImage(video, 0, 0, outW, outH);
-                const pct = Math.min(98, Math.max(5, Math.round((video.currentTime / duration) * 95)));
-                onProgress(pct);
-                rafId = requestAnimationFrame(renderFrame);
+          vid.addEventListener(
+            "seeked",
+            () => {
+              clearTimeout(timeout);
+              try {
+                const c = document.createElement("canvas");
+                c.width = Math.max(64, Math.min(320, vid.videoWidth || 160));
+                c.height = Math.max(64, Math.min(320, vid.videoHeight || 160));
+                c.getContext("2d").drawImage(vid, 0, 0, c.width, c.height);
+                const dataUrl = c.toDataURL("image/jpeg", 0.8);
+                cleanup();
+                resolve(dataUrl);
+              } catch (e) {
+                cleanup();
+                resolve(null);
               }
-            };
+            },
+            { once: true },
+          );
 
-            recorder.onstop = () => {
-              if (rafId) cancelAnimationFrame(rafId);
-              onProgress(100);
-              const blobType = mimeType ? mimeType.split(';')[0] : 'video/mp4';
-              const outBlob = new Blob(chunks, { type: blobType });
-              resolve(outBlob);
-            };
-
-            video.onended = () => {
-              if (recorder.state === 'recording') recorder.stop();
-            };
-
-            recorder.start(150);
-            await video.play();
-            renderFrame();
-          } catch (err) {
-            reject(err);
-          }
-        };
-      });
-    }
-
-    function getNearestColorIdx(r, g, b, rawPalette, cache) {
-      const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
-      let match = cache[key];
-      if (match === -1) {
-        let minDist = Infinity;
-        let best = 0;
-        for (let i = 0; i < rawPalette.length; i++) {
-          const pr = (rawPalette[i] >> 16) & 0xff;
-          const pg = (rawPalette[i] >> 8) & 0xff;
-          const pb = rawPalette[i] & 0xff;
-          const dist = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
-          if (dist < minDist) {
-            minDist = dist;
-            best = i;
-            if (dist === 0) break;
-          }
-        }
-        match = best;
-        cache[key] = match;
-      }
-      return match;
-    }
-
-    async function encodeGifWithDeltaOptimization(frames, origW, origH, scale, colorsCount, diffTolerance, onProgress) {
-      const outW = Math.max(32, Math.round(origW * scale));
-      const outH = Math.max(32, Math.round(origH * scale));
-
-      const scaleCanvas = document.createElement('canvas');
-      scaleCanvas.width = outW;
-      scaleCanvas.height = outH;
-      const scaleCtx = scaleCanvas.getContext('2d', { willReadFrequently: true });
-      scaleCtx.imageSmoothingEnabled = false;
-
-      const processedFrames = [];
-      for (let f = 0; f < frames.length; f++) {
-        scaleCtx.clearRect(0, 0, outW, outH);
-        scaleCtx.drawImage(frames[f].canvas, 0, 0, outW, outH);
-        processedFrames.push({
-          rgba: scaleCtx.getImageData(0, 0, outW, outH).data,
-          delay: frames[f].delay,
+          vid.addEventListener(
+            "error",
+            () => {
+              clearTimeout(timeout);
+              cleanup();
+              resolve(null);
+            },
+            { once: true },
+          );
         });
       }
 
-      const sampleStep = Math.max(1, Math.floor(processedFrames.length / 6));
-      const sampled = processedFrames.filter((_, idx) => idx % sampleStep === 0);
-      const composite = new Uint8ClampedArray(outW * outH * sampled.length * 4);
-      for (let i = 0; i < sampled.length; i++) {
-        composite.set(sampled[i].rgba, i * outW * outH * 4);
-      }
+      async function addFilesToQueue(fileList) {
+        const incoming = Array.from(fileList);
+        let addedCount = 0;
 
-      const maxPaletteEntries = Math.min(255, colorsCount - 1);
-      const rawPalette = [];
+        for (const file of incoming) {
+          const kind = detectKind(file);
+          if (!kind) continue;
 
-      if (typeof window.UPNG !== 'undefined' && typeof window.UPNG.quantize === 'function') {
-        try {
-          const q = window.UPNG.quantize(composite.buffer.slice(0), maxPaletteEntries);
-          const plte = q.plte || [];
-          for (let i = 0; i < plte.length; i++) {
-            if (plte[i].est && plte[i].est.rgba) {
-              const arr = plte[i].est.rgba;
-              const r = Math.min(255, Math.max(0, Math.round(arr[0])));
-              const g = Math.min(255, Math.max(0, Math.round(arr[1])));
-              const b = Math.min(255, Math.max(0, Math.round(arr[2])));
-              rawPalette.push((r << 16) | (g << 8) | b);
-            }
-          }
-        } catch (e) {}
-      }
+          const isVideo = kind === "MP4" || kind === "WEBM" || kind === "MOV";
+          const id =
+            "item_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+          const originalUrl = URL.createObjectURL(file);
+          const posterUrl = isVideo
+            ? await generateVideoPoster(originalUrl)
+            : null;
 
-      if (rawPalette.length === 0) {
-        const hist = new Map();
-        for (let p = 0; p < composite.length; p += 16) {
-          if (composite[p + 3] < 128) continue;
-          const key = ((composite[p] & 0xf8) << 16) | ((composite[p + 1] & 0xf8) << 8) | (composite[p + 2] & 0xf8);
-          hist.set(key, (hist.get(key) || 0) + 1);
+          state.files.push({
+            id,
+            file,
+            name: file.name,
+            kind,
+            isVideo,
+            posterUrl,
+            originalSize: file.size,
+            originalUrl,
+            status: "idle",
+            progress: 0,
+            startTime: null,
+            etaText: "--:--",
+            compressedBlob: null,
+            compressedUrl: null,
+            compressedSize: null,
+            outputExt: null,
+          });
+          addedCount++;
         }
-        const sorted = Array.from(hist.entries()).sort((a, b) => b[1] - a[1]);
-        for (let i = 0; i < Math.min(maxPaletteEntries, sorted.length); i++) {
-          rawPalette.push(sorted[i][0]);
+
+        if (addedCount === 0) {
+          showToast(
+            "Please select PNG, GIF, JPG, WEBP, MP4, WebM, or MOV files.",
+          );
+          return;
         }
-        if (rawPalette.length === 0) rawPalette.push(0xffffff, 0x888888, 0x222222);
+
+        recalculateSliderBounds(true);
+        renderWorkspace();
       }
 
-      let pow2 = 2;
-      while (pow2 < rawPalette.length + 1) pow2 <<= 1;
-      pow2 = Math.min(256, Math.max(2, pow2));
+      function recalculateSliderBounds(isNewUpload = false) {
+        if (state.files.length === 0) return;
+        const largestFileBytes = Math.max(
+          ...state.files.map((f) => f.originalSize),
+        );
+        const largestFileMB = Math.max(0.049, largestFileBytes / BYTES_MB);
 
-      const globalPalette = new Uint32Array(pow2);
-      globalPalette[0] = 0x000000;
-      for (let i = 0; i < rawPalette.length; i++) {
-        globalPalette[i + 1] = rawPalette[i];
-      }
+        const slider = document.getElementById("universalSlider");
+        const mbInput = document.getElementById("directMbInput");
+        const kbInput = document.getElementById("directKbInput");
 
-      const lookupCache = new Int16Array(32768).fill(-1);
-      const bufferSize = Math.max(262144, outW * outH * processedFrames.length * 2);
-      const outBuf = new Uint8Array(bufferSize);
+        const maxCapMB = Number(largestFileMB.toFixed(3));
+        slider.max = maxCapMB.toString();
+        mbInput.max = maxCapMB.toString();
+        kbInput.max = Math.round(maxCapMB * 1024).toString();
 
-      const writer = new window.GifWriter(outBuf, outW, outH, {
-        palette: Array.from(globalPalette),
-        loop: 0,
-      });
+        document.getElementById("sliderSubtext").textContent =
+          `Maximum cap bounded to ${formatMBAndKB(largestFileBytes)}`;
 
-      const lastRenderedRgba = new Uint8ClampedArray(outW * outH * 4);
-
-      for (let f = 0; f < processedFrames.length; f++) {
-        const frameRgba = processedFrames[f].rgba;
-        const indexed = new Uint8Array(outW * outH);
-
-        if (f === 0) {
-          for (let p = 0, idx = 0; p < frameRgba.length; p += 4, idx++) {
-            if (frameRgba[p + 3] < 128) {
-              indexed[idx] = 0;
-            } else {
-              const cIdx = getNearestColorIdx(frameRgba[p], frameRgba[p + 1], frameRgba[p + 2], rawPalette, lookupCache);
-              indexed[idx] = cIdx + 1;
-              lastRenderedRgba[p] = frameRgba[p];
-              lastRenderedRgba[p + 1] = frameRgba[p + 1];
-              lastRenderedRgba[p + 2] = frameRgba[p + 2];
-              lastRenderedRgba[p + 3] = 255;
-            }
-          }
+        if (isNewUpload) {
+          const smartDefaultMB = Math.min(maxCapMB * 0.5, 0.5);
+          setUniversalTargetMB(Math.max(0.049, smartDefaultMB), "auto");
+        } else if (state.targetMaxMB > maxCapMB) {
+          setUniversalTargetMB(maxCapMB, "auto");
         } else {
-          for (let p = 0, idx = 0; p < frameRgba.length; p += 4, idx++) {
-            if (frameRgba[p + 3] < 128) {
-              indexed[idx] = 0;
-              continue;
-            }
+          syncUniversalSliderUI();
+        }
+      }
 
-            const r = frameRgba[p];
-            const g = frameRgba[p + 1];
-            const b = frameRgba[p + 2];
+      /*************************************************************************
+       * 3. UNIVERSAL SLIDER & SYNCHRONIZED CONTROLS
+       *************************************************************************/
+      const universalSlider = document.getElementById("universalSlider");
+      const directMbInput = document.getElementById("directMbInput");
+      const directKbInput = document.getElementById("directKbInput");
 
-            const lr = lastRenderedRgba[p];
-            const lg = lastRenderedRgba[p + 1];
-            const lb = lastRenderedRgba[p + 2];
-            const diff = Math.abs(r - lr) + Math.abs(g - lg) + Math.abs(b - lb);
+      function formatDisplayMB(mb) {
+        if (mb < 0.2) return Number(mb.toFixed(3)).toString();
+        return mb.toFixed(2);
+      }
 
-            if (diff <= diffTolerance && lastRenderedRgba[p + 3] === 255) {
-              indexed[idx] = 0;
-            } else {
-              const cIdx = getNearestColorIdx(r, g, b, rawPalette, lookupCache);
-              indexed[idx] = cIdx + 1;
-              lastRenderedRgba[p] = r;
-              lastRenderedRgba[p + 1] = g;
-              lastRenderedRgba[p + 2] = b;
-              lastRenderedRgba[p + 3] = 255;
+      function setUniversalTargetMB(mbValue, source, exactPresetMB = null) {
+        const maxAllowed = parseFloat(universalSlider.max) || 20;
+        const clamped = Math.max(
+          0.01,
+          Math.min(maxAllowed, Number(mbValue) || 1.0),
+        );
+        state.targetMaxMB = clamped;
+
+        const kbValue = (clamped * BYTES_MB) / BYTES_KB;
+
+        if (source !== "slider") {
+          universalSlider.value = clamped.toFixed(3);
+        }
+        if (source !== "mb") {
+          directMbInput.value =
+            exactPresetMB !== null ? exactPresetMB : formatDisplayMB(clamped);
+        }
+        if (source !== "kb") {
+          directKbInput.value = Number(kbValue.toFixed(1));
+        }
+
+        syncUniversalSliderUI();
+        updateTotalsAndCardsLive();
+      }
+
+      function syncUniversalSliderUI() {
+        const min = parseFloat(universalSlider.min) || 0.01;
+        const max = parseFloat(universalSlider.max) || 5.0;
+        const pct = Math.max(
+          0,
+          Math.min(100, ((state.targetMaxMB - min) / (max - min)) * 100),
+        );
+        universalSlider.style.setProperty("--slider-pct", `${pct}%`);
+
+        const currentKB = state.targetMaxMB * 1024;
+        document.querySelectorAll(".preset-btn").forEach((btn) => {
+          const presetKB = parseFloat(btn.getAttribute("data-kb"));
+          const active = Math.abs(presetKB - currentKB) < 2.0;
+          const spanExtra =
+            btn.getAttribute("data-kb") === "512"
+              ? "col-span-2 sm:col-span-1 "
+              : "";
+          btn.className = active
+            ? `${spanExtra}preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border-2 border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/80 shadow-sm transition-all text-center cursor-pointer`
+            : `${spanExtra}preset-btn flex flex-col items-center justify-center py-2.5 px-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-center cursor-pointer`;
+        });
+      }
+
+      universalSlider.addEventListener("input", (e) => {
+        setUniversalTargetMB(parseFloat(e.target.value), "slider");
+      });
+
+      directMbInput.addEventListener("input", (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v) && v > 0) setUniversalTargetMB(v, "mb");
+      });
+
+      directKbInput.addEventListener("input", (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v) && v > 0) setUniversalTargetMB(v / 1024, "kb");
+      });
+
+      document.querySelectorAll(".preset-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const kb = parseFloat(btn.getAttribute("data-kb"));
+          const mbLabel = btn.getAttribute("data-mb");
+          setUniversalTargetMB(kb / 1024, "preset", mbLabel);
+        });
+      });
+
+      /*************************************************************************
+       * 4. HIGH-PERFORMANCE GIF & MEDIA ENGINES
+       *************************************************************************/
+      function loadImage(url) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = url;
+        });
+      }
+
+      function getSupportedVideoMime(preferredKind, hasAudio = false) {
+        const mp4Candidates = hasAudio
+          ? [
+              "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+              "video/mp4;codecs=avc1,mp4a.40.2",
+              "video/mp4",
+            ]
+          : [
+              "video/mp4;codecs=avc1.42E01E",
+              "video/mp4;codecs=avc1",
+              "video/mp4",
+            ];
+
+        const webmCandidates = hasAudio
+          ? [
+              "video/webm;codecs=vp9,opus",
+              "video/webm;codecs=vp8,opus",
+              "video/webm",
+            ]
+          : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+
+        const candidateList =
+          preferredKind === "WEBM"
+            ? [...webmCandidates, ...mp4Candidates]
+            : [...mp4Candidates, ...webmCandidates];
+
+        if (
+          typeof window.MediaRecorder !== "undefined" &&
+          typeof window.MediaRecorder.isTypeSupported === "function"
+        ) {
+          for (const mime of candidateList) {
+            if (window.MediaRecorder.isTypeSupported(mime)) {
+              return {
+                mimeType: mime,
+                ext: mime.startsWith("video/mp4") ? "mp4" : "webm",
+              };
             }
           }
         }
+        return { mimeType: "", ext: "webm" };
+      }
 
-        writer.addFrame(0, 0, outW, outH, indexed, {
-          delay: processedFrames[f].delay,
-          transparent: 0,
-          disposal: 1,
+      async function compressVideoItem(item, targetMaxBytes, onProgress) {
+        return new Promise((resolve, reject) => {
+          const video = document.createElement("video");
+          video.src = item.originalUrl;
+          video.muted = true;
+          video.playsInline = true;
+          video.preload = "auto";
+
+          video.onerror = () => reject(new Error("Failed to load video"));
+
+          video.onloadedmetadata = async () => {
+            try {
+              // Guard against Infinity/NaN duration (e.g. Unity/screen captures and WebMs)
+              let duration = video.duration;
+              if (!Number.isFinite(duration) || duration <= 0) {
+                if (video.duration === Infinity) {
+                  await new Promise((res) => {
+                    const onEndSeeked = () => {
+                      duration = Number.isFinite(video.duration)
+                        ? video.duration
+                        : 10;
+                      video.addEventListener("seeked", () => res(), {
+                        once: true,
+                      });
+                      video.currentTime = 0;
+                    };
+                    video.addEventListener("seeked", onEndSeeked, {
+                      once: true,
+                    });
+                    video.currentTime = 1e10;
+                    setTimeout(() => {
+                      video.removeEventListener("seeked", onEndSeeked);
+                      duration = 10;
+                      if (video.currentTime !== 0) {
+                        video.addEventListener("seeked", () => res(), {
+                          once: true,
+                        });
+                        video.currentTime = 0;
+                      } else {
+                        res();
+                      }
+                    }, 500);
+                  });
+                } else {
+                  duration = 10;
+                }
+              }
+              duration = Math.max(0.5, duration);
+
+              const origW = video.videoWidth || 1280;
+              const origH = video.videoHeight || 720;
+
+              const targetTotalBps = Math.floor(
+                (targetMaxBytes * 8 * 0.88) / duration,
+              );
+              const videoBps = Math.max(
+                90000,
+                Math.min(8000000, targetTotalBps),
+              );
+
+              let scale = 1.0;
+              if (videoBps < 250000) scale = 0.45;
+              else if (videoBps < 500000) scale = 0.6;
+              else if (videoBps < 1000000) scale = 0.75;
+              else if (videoBps < 1800000) scale = 0.88;
+
+              const outW = Math.max(160, Math.round((origW * scale) / 2) * 2);
+              const outH = Math.max(160, Math.round((origH * scale) / 2) * 2);
+
+              const canvas = document.createElement("canvas");
+              canvas.width = outW;
+              canvas.height = outH;
+              const ctx = canvas.getContext("2d");
+
+              const fps = 24;
+              const canvasStream = canvas.captureStream
+                ? canvas.captureStream(fps)
+                : null;
+              if (!canvasStream)
+                throw new Error(
+                  "Canvas stream capture is not supported in this browser",
+                );
+
+              // Detect and route audio without outputting to user speakers
+              let combinedStream = canvasStream;
+              let audioCtx = null;
+              try {
+                const probeStream = video.captureStream
+                  ? video.captureStream()
+                  : video.mozCaptureStream
+                    ? video.mozCaptureStream()
+                    : null;
+                const audioTracks = probeStream
+                  ? probeStream.getAudioTracks()
+                  : [];
+                if (audioTracks && audioTracks.length > 0) {
+                  const AudioCtx =
+                    window.AudioContext || window.webkitAudioContext;
+                  if (AudioCtx) {
+                    audioCtx = new AudioCtx();
+                    if (audioCtx.state === "suspended") {
+                      await audioCtx.resume();
+                    }
+                    video.muted = false;
+                    video.volume = 1.0;
+                    const source = audioCtx.createMediaElementSource(video);
+                    const dest = audioCtx.createMediaStreamDestination();
+                    source.connect(dest);
+                    combinedStream = new MediaStream([
+                      ...canvasStream.getVideoTracks(),
+                      ...dest.stream.getAudioTracks(),
+                    ]);
+                  }
+                }
+              } catch (audioErr) {
+                combinedStream = canvasStream;
+              }
+
+              const hasAudio = combinedStream.getAudioTracks().length > 0;
+              const { mimeType, ext } = getSupportedVideoMime(
+                item.kind,
+                hasAudio,
+              );
+              item.outputExt = ext;
+
+              const recorderOptions = { videoBitsPerSecond: videoBps };
+              if (mimeType) recorderOptions.mimeType = mimeType;
+
+              const chunks = [];
+              const recorder = new MediaRecorder(
+                combinedStream,
+                recorderOptions,
+              );
+
+              recorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) chunks.push(e.data);
+              };
+
+              let stopped = false;
+              let animHandle = null;
+              let failsafeTimer = null;
+
+              const stopRecording = () => {
+                if (stopped) return;
+                stopped = true;
+                if (failsafeTimer) clearTimeout(failsafeTimer);
+                if (animHandle) {
+                  if (
+                    "cancelVideoFrameCallback" in video &&
+                    typeof animHandle === "number"
+                  ) {
+                    video.cancelVideoFrameCallback(animHandle);
+                  } else {
+                    cancelAnimationFrame(animHandle);
+                  }
+                }
+                if (recorder.state === "recording") {
+                  recorder.stop();
+                }
+              };
+
+              // Main frame renderer with near-end boundary completion
+              const onFrame = () => {
+                if (stopped) return;
+
+                if (video.currentTime >= duration - 0.12 || video.ended) {
+                  ctx.drawImage(video, 0, 0, outW, outH);
+                  stopRecording();
+                  return;
+                }
+
+                ctx.drawImage(video, 0, 0, outW, outH);
+                const pct = Math.min(
+                  98,
+                  Math.max(5, Math.round((video.currentTime / duration) * 95)),
+                );
+                onProgress(pct);
+
+                if ("requestVideoFrameCallback" in video) {
+                  animHandle = video.requestVideoFrameCallback(onFrame);
+                } else {
+                  animHandle = requestAnimationFrame(onFrame);
+                }
+              };
+
+              recorder.onstop = () => {
+                if (failsafeTimer) clearTimeout(failsafeTimer);
+                if (audioCtx && audioCtx.state !== "closed") {
+                  audioCtx.close().catch(() => {});
+                }
+                onProgress(100);
+                const blobType = mimeType
+                  ? mimeType.split(";")[0]
+                  : item.outputExt === "webm"
+                    ? "video/webm"
+                    : "video/mp4";
+                const outBlob = new Blob(chunks, { type: blobType });
+                resolve(outBlob);
+              };
+
+              // Multi-layer termination triggers
+              video.onended = stopRecording;
+              video.onpause = () => {
+                if (video.currentTime >= duration - 0.3) {
+                  stopRecording();
+                }
+              };
+              video.ontimeupdate = () => {
+                if (stopped) return;
+                const pct = Math.min(
+                  98,
+                  Math.max(5, Math.round((video.currentTime / duration) * 95)),
+                );
+                onProgress(pct);
+                if (video.currentTime >= duration - 0.15) {
+                  stopRecording();
+                }
+              };
+
+              // Failsafe timeout to prevent permanent hanging under any condition
+              failsafeTimer = setTimeout(
+                stopRecording,
+                Math.round(duration * 1000) + 1800,
+              );
+
+              recorder.start(100);
+              try {
+                await video.play();
+              } catch (playErr) {
+                // If unmuted autoplay is rejected across batches, recover by muting
+                video.muted = true;
+                await video.play();
+              }
+
+              if ("requestVideoFrameCallback" in video) {
+                animHandle = video.requestVideoFrameCallback(onFrame);
+              } else {
+                animHandle = requestAnimationFrame(onFrame);
+              }
+            } catch (err) {
+              reject(err);
+            }
+          };
         });
+      }
 
-        if (f % 3 === 0 || f === processedFrames.length - 1) {
-          onProgress(Math.min(95, 45 + Math.round((f / processedFrames.length) * 50)));
-          await new Promise((r) => setTimeout(r, 0));
+      function getNearestColorIdx(r, g, b, rawPalette, cache) {
+        const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+        let match = cache[key];
+        if (match === -1) {
+          let minDist = Infinity;
+          let best = 0;
+          for (let i = 0; i < rawPalette.length; i++) {
+            const pr = (rawPalette[i] >> 16) & 0xff;
+            const pg = (rawPalette[i] >> 8) & 0xff;
+            const pb = rawPalette[i] & 0xff;
+            const dist = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
+            if (dist < minDist) {
+              minDist = dist;
+              best = i;
+              if (dist === 0) break;
+            }
+          }
+          match = best;
+          cache[key] = match;
         }
+        return match;
       }
 
-      const writtenLen = writer.end();
-      return new Blob([outBuf.subarray(0, writtenLen)], { type: 'image/gif' });
-    }
+      async function encodeGifWithDeltaOptimization(
+        frames,
+        origW,
+        origH,
+        scale,
+        colorsCount,
+        diffTolerance,
+        onProgress,
+      ) {
+        const outW = Math.max(32, Math.round(origW * scale));
+        const outH = Math.max(32, Math.round(origH * scale));
 
-    async function compressGifItem(item, targetMaxBytes, onProgress) {
-      const arrayBuf = await item.file.arrayBuffer();
-      const uint8 = new Uint8Array(arrayBuf);
+        const scaleCanvas = document.createElement("canvas");
+        scaleCanvas.width = outW;
+        scaleCanvas.height = outH;
+        const scaleCtx = scaleCanvas.getContext("2d", {
+          willReadFrequently: true,
+        });
+        scaleCtx.imageSmoothingEnabled = false;
 
-      if (typeof window.GifReader === 'undefined' || typeof window.GifWriter === 'undefined') {
-        return compressRasterItem(item, targetMaxBytes, onProgress);
-      }
-
-      const reader = new window.GifReader(uint8);
-      const numFrames = reader.numFrames();
-      const origW = reader.width;
-      const origH = reader.height;
-
-      onProgress(10);
-      await new Promise((r) => setTimeout(r, 0));
-
-      const fullCanvas = document.createElement('canvas');
-      fullCanvas.width = origW;
-      fullCanvas.height = origH;
-      const fullCtx = fullCanvas.getContext('2d', { willReadFrequently: true });
-      const framePixelBuffer = new Uint8ClampedArray(origW * origH * 4);
-
-      const targetRatio = targetMaxBytes / item.originalSize;
-      const initialStep = targetRatio < 0.28 && numFrames > 15 ? 2 : 1;
-
-      const rawFrames = [];
-      for (let f = 0; f < numFrames; f++) {
-        const info = reader.frameInfo(f);
-        reader.decodeAndBlitFrameRGBA(f, framePixelBuffer);
-
-        const imgData = new ImageData(new Uint8ClampedArray(framePixelBuffer), origW, origH);
-        fullCtx.putImageData(imgData, 0, 0);
-
-        if (f % initialStep === 0) {
-          const snap = document.createElement('canvas');
-          snap.width = origW;
-          snap.height = origH;
-          snap.getContext('2d').drawImage(fullCanvas, 0, 0);
-          rawFrames.push({
-            canvas: snap,
-            delay: Math.max(2, (info.delay || 8) * initialStep),
+        const processedFrames = [];
+        for (let f = 0; f < frames.length; f++) {
+          scaleCtx.clearRect(0, 0, outW, outH);
+          scaleCtx.drawImage(frames[f].canvas, 0, 0, outW, outH);
+          processedFrames.push({
+            rgba: scaleCtx.getImageData(0, 0, outW, outH).data,
+            delay: frames[f].delay,
           });
         }
 
-        if (f % 6 === 0) {
-          onProgress(Math.min(35, 10 + Math.round((f / numFrames) * 25)));
-          await new Promise((r) => setTimeout(r, 0));
+        const sampleStep = Math.max(1, Math.floor(processedFrames.length / 6));
+        const sampled = processedFrames.filter(
+          (_, idx) => idx % sampleStep === 0,
+        );
+        const composite = new Uint8ClampedArray(
+          outW * outH * sampled.length * 4,
+        );
+        for (let i = 0; i < sampled.length; i++) {
+          composite.set(sampled[i].rgba, i * outW * outH * 4);
         }
+
+        const maxPaletteEntries = Math.min(255, colorsCount - 1);
+        const rawPalette = [];
+
+        if (
+          typeof window.UPNG !== "undefined" &&
+          typeof window.UPNG.quantize === "function"
+        ) {
+          try {
+            const q = window.UPNG.quantize(
+              composite.buffer.slice(0),
+              maxPaletteEntries,
+            );
+            const plte = q.plte || [];
+            for (let i = 0; i < plte.length; i++) {
+              if (plte[i].est && plte[i].est.rgba) {
+                const arr = plte[i].est.rgba;
+                const r = Math.min(255, Math.max(0, Math.round(arr[0])));
+                const g = Math.min(255, Math.max(0, Math.round(arr[1])));
+                const b = Math.min(255, Math.max(0, Math.round(arr[2])));
+                rawPalette.push((r << 16) | (g << 8) | b);
+              }
+            }
+          } catch (e) {}
+        }
+
+        if (rawPalette.length === 0) {
+          const hist = new Map();
+          for (let p = 0; p < composite.length; p += 16) {
+            if (composite[p + 3] < 128) continue;
+            const key =
+              ((composite[p] & 0xf8) << 16) |
+              ((composite[p + 1] & 0xf8) << 8) |
+              (composite[p + 2] & 0xf8);
+            hist.set(key, (hist.get(key) || 0) + 1);
+          }
+          const sorted = Array.from(hist.entries()).sort((a, b) => b[1] - a[1]);
+          for (let i = 0; i < Math.min(maxPaletteEntries, sorted.length); i++) {
+            rawPalette.push(sorted[i][0]);
+          }
+          if (rawPalette.length === 0)
+            rawPalette.push(0xffffff, 0x888888, 0x222222);
+        }
+
+        let pow2 = 2;
+        while (pow2 < rawPalette.length + 1) pow2 <<= 1;
+        pow2 = Math.min(256, Math.max(2, pow2));
+
+        const globalPalette = new Uint32Array(pow2);
+        globalPalette[0] = 0x000000;
+        for (let i = 0; i < rawPalette.length; i++) {
+          globalPalette[i + 1] = rawPalette[i];
+        }
+
+        const lookupCache = new Int16Array(32768).fill(-1);
+        const bufferSize = Math.max(
+          262144,
+          outW * outH * processedFrames.length * 2,
+        );
+        const outBuf = new Uint8Array(bufferSize);
+
+        const writer = new window.GifWriter(outBuf, outW, outH, {
+          palette: Array.from(globalPalette),
+          loop: 0,
+        });
+
+        const lastRenderedRgba = new Uint8ClampedArray(outW * outH * 4);
+
+        for (let f = 0; f < processedFrames.length; f++) {
+          const frameRgba = processedFrames[f].rgba;
+          const indexed = new Uint8Array(outW * outH);
+
+          if (f === 0) {
+            for (let p = 0, idx = 0; p < frameRgba.length; p += 4, idx++) {
+              if (frameRgba[p + 3] < 128) {
+                indexed[idx] = 0;
+              } else {
+                const cIdx = getNearestColorIdx(
+                  frameRgba[p],
+                  frameRgba[p + 1],
+                  frameRgba[p + 2],
+                  rawPalette,
+                  lookupCache,
+                );
+                indexed[idx] = cIdx + 1;
+                lastRenderedRgba[p] = frameRgba[p];
+                lastRenderedRgba[p + 1] = frameRgba[p + 1];
+                lastRenderedRgba[p + 2] = frameRgba[p + 2];
+                lastRenderedRgba[p + 3] = 255;
+              }
+            }
+          } else {
+            for (let p = 0, idx = 0; p < frameRgba.length; p += 4, idx++) {
+              if (frameRgba[p + 3] < 128) {
+                indexed[idx] = 0;
+                continue;
+              }
+
+              const r = frameRgba[p];
+              const g = frameRgba[p + 1];
+              const b = frameRgba[p + 2];
+
+              const lr = lastRenderedRgba[p];
+              const lg = lastRenderedRgba[p + 1];
+              const lb = lastRenderedRgba[p + 2];
+              const diff =
+                Math.abs(r - lr) + Math.abs(g - lg) + Math.abs(b - lb);
+
+              if (diff <= diffTolerance && lastRenderedRgba[p + 3] === 255) {
+                indexed[idx] = 0;
+              } else {
+                const cIdx = getNearestColorIdx(
+                  r,
+                  g,
+                  b,
+                  rawPalette,
+                  lookupCache,
+                );
+                indexed[idx] = cIdx + 1;
+                lastRenderedRgba[p] = r;
+                lastRenderedRgba[p + 1] = g;
+                lastRenderedRgba[p + 2] = b;
+                lastRenderedRgba[p + 3] = 255;
+              }
+            }
+          }
+
+          writer.addFrame(0, 0, outW, outH, indexed, {
+            delay: processedFrames[f].delay,
+            transparent: 0,
+            disposal: 1,
+          });
+
+          if (f % 3 === 0 || f === processedFrames.length - 1) {
+            onProgress(
+              Math.min(95, 45 + Math.round((f / processedFrames.length) * 50)),
+            );
+            await new Promise((r) => setTimeout(r, 0));
+          }
+        }
+
+        const writtenLen = writer.end();
+        return new Blob([outBuf.subarray(0, writtenLen)], {
+          type: "image/gif",
+        });
       }
 
-      onProgress(40);
-      await new Promise((r) => setTimeout(r, 0));
+      async function compressGifItem(item, targetMaxBytes, onProgress) {
+        const arrayBuf = await item.file.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuf);
 
-      let scale = 1.0;
-      let colors = 128;
-      let tolerance = 14;
+        if (
+          typeof window.GifReader === "undefined" ||
+          typeof window.GifWriter === "undefined"
+        ) {
+          return compressRasterItem(item, targetMaxBytes, onProgress);
+        }
 
-      if (targetRatio < 0.30) {
-        scale = 0.60;
-        colors = 64;
-        tolerance = 24;
-      } else if (targetRatio < 0.50) {
-        scale = 0.75;
-        colors = 96;
-        tolerance = 18;
-      } else if (targetRatio < 0.75) {
-        scale = 0.88;
-        colors = 128;
-        tolerance = 12;
-      }
+        const reader = new window.GifReader(uint8);
+        const numFrames = reader.numFrames();
+        const origW = reader.width;
+        const origH = reader.height;
 
-      let outBlob = await encodeGifWithDeltaOptimization(rawFrames, origW, origH, scale, colors, tolerance, onProgress);
-
-      if (outBlob.size >= item.originalSize || outBlob.size > targetMaxBytes * 1.05) {
-        onProgress(60);
+        onProgress(10);
         await new Promise((r) => setTimeout(r, 0));
-        const aggressiveScale = Math.max(0.45, scale * 0.75);
-        const aggressiveColors = Math.min(colors, 64);
-        const aggressiveTolerance = tolerance + 12;
 
-        const fallbackBlob = await encodeGifWithDeltaOptimization(
+        const fullCanvas = document.createElement("canvas");
+        fullCanvas.width = origW;
+        fullCanvas.height = origH;
+        const fullCtx = fullCanvas.getContext("2d", {
+          willReadFrequently: true,
+        });
+        const framePixelBuffer = new Uint8ClampedArray(origW * origH * 4);
+
+        const targetRatio = targetMaxBytes / item.originalSize;
+        const initialStep = targetRatio < 0.28 && numFrames > 15 ? 2 : 1;
+
+        const rawFrames = [];
+        for (let f = 0; f < numFrames; f++) {
+          const info = reader.frameInfo(f);
+          reader.decodeAndBlitFrameRGBA(f, framePixelBuffer);
+
+          const imgData = new ImageData(
+            new Uint8ClampedArray(framePixelBuffer),
+            origW,
+            origH,
+          );
+          fullCtx.putImageData(imgData, 0, 0);
+
+          if (f % initialStep === 0) {
+            const snap = document.createElement("canvas");
+            snap.width = origW;
+            snap.height = origH;
+            snap.getContext("2d").drawImage(fullCanvas, 0, 0);
+            rawFrames.push({
+              canvas: snap,
+              delay: Math.max(2, (info.delay || 8) * initialStep),
+            });
+          }
+
+          if (f % 6 === 0) {
+            onProgress(Math.min(35, 10 + Math.round((f / numFrames) * 25)));
+            await new Promise((r) => setTimeout(r, 0));
+          }
+        }
+
+        onProgress(40);
+        await new Promise((r) => setTimeout(r, 0));
+
+        let scale = 1.0;
+        let colors = 128;
+        let tolerance = 14;
+
+        if (targetRatio < 0.3) {
+          scale = 0.6;
+          colors = 64;
+          tolerance = 24;
+        } else if (targetRatio < 0.5) {
+          scale = 0.75;
+          colors = 96;
+          tolerance = 18;
+        } else if (targetRatio < 0.75) {
+          scale = 0.88;
+          colors = 128;
+          tolerance = 12;
+        }
+
+        let outBlob = await encodeGifWithDeltaOptimization(
           rawFrames,
           origW,
           origH,
-          aggressiveScale,
-          aggressiveColors,
-          aggressiveTolerance,
-          onProgress
+          scale,
+          colors,
+          tolerance,
+          onProgress,
         );
 
-        if (fallbackBlob.size < outBlob.size) {
-          outBlob = fallbackBlob;
-        }
-      }
-
-      onProgress(100);
-      return outBlob;
-    }
-
-    async function compressRasterItem(item, targetMaxBytes, onProgress) {
-      onProgress(15);
-      const img = await loadImage(item.originalUrl);
-      const origW = img.naturalWidth || img.width;
-      const origH = img.naturalHeight || img.height;
-
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-      function renderScaled(scale) {
-        const w = Math.max(48, Math.round(origW * scale));
-        const h = Math.max(48, Math.round(origH * scale));
-        canvas.width = w;
-        canvas.height = h;
-        ctx.clearRect(0, 0, w, h);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, w, h);
-        return { w, h, imgData: ctx.getImageData(0, 0, w, h) };
-      }
-
-      onProgress(30);
-      await new Promise((r) => setTimeout(r, 0));
-
-      if (item.kind === 'JPG' || item.kind === 'WEBP') {
-        const mime = item.kind === 'WEBP' ? 'image/webp' : 'image/jpeg';
-        const scales = [1.0, 0.85, 0.70, 0.55, 0.40];
-        const qualities = [0.82, 0.68, 0.52, 0.38, 0.25];
-        let bestBlob = null;
-
-        outerJpg:
-        for (let s = 0; s < scales.length; s++) {
-          renderScaled(scales[s]);
-          onProgress(Math.min(92, 40 + s * 12));
+        if (
+          outBlob.size >= item.originalSize ||
+          outBlob.size > targetMaxBytes * 1.05
+        ) {
+          onProgress(60);
           await new Promise((r) => setTimeout(r, 0));
+          const aggressiveScale = Math.max(0.45, scale * 0.75);
+          const aggressiveColors = Math.min(colors, 64);
+          const aggressiveTolerance = tolerance + 12;
 
-          for (let q = 0; q < qualities.length; q++) {
-            const blob = await new Promise((res) => canvas.toBlob(res, mime, qualities[q]));
-            bestBlob = blob;
-            if (blob.size <= targetMaxBytes && blob.size < item.originalSize * 0.98) {
-              break outerJpg;
-            }
+          const fallbackBlob = await encodeGifWithDeltaOptimization(
+            rawFrames,
+            origW,
+            origH,
+            aggressiveScale,
+            aggressiveColors,
+            aggressiveTolerance,
+            onProgress,
+          );
+
+          if (fallbackBlob.size < outBlob.size) {
+            outBlob = fallbackBlob;
           }
         }
+
         onProgress(100);
-        return bestBlob;
+        return outBlob;
       }
 
-      if (typeof window.UPNG !== 'undefined') {
-        const estMaxPixels = Math.max(70000, Math.floor(targetMaxBytes * 4.2));
-        const currentPixels = origW * origH;
-        let startScale = 1.0;
-        if (currentPixels > estMaxPixels) {
-          startScale = Math.min(1.0, Math.sqrt(estMaxPixels / currentPixels));
+      async function compressRasterItem(item, targetMaxBytes, onProgress) {
+        onProgress(15);
+        const img = await loadImage(item.originalUrl);
+        const origW = img.naturalWidth || img.width;
+        const origH = img.naturalHeight || img.height;
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+        function renderScaled(scale) {
+          const w = Math.max(48, Math.round(origW * scale));
+          const h = Math.max(48, Math.round(origH * scale));
+          canvas.width = w;
+          canvas.height = h;
+          ctx.clearRect(0, 0, w, h);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, w, h);
+          return { w, h, imgData: ctx.getImageData(0, 0, w, h) };
         }
 
-        const scaleList = startScale < 0.9
-          ? [startScale, startScale * 0.80, startScale * 0.62, startScale * 0.45]
-          : [1.0, 0.84, 0.70, 0.55, 0.40];
+        onProgress(30);
+        await new Promise((r) => setTimeout(r, 0));
 
-        const colorsList = [256, 128, 64, 32];
-        let bestBuf = null;
+        if (item.kind === "JPG" || item.kind === "WEBP") {
+          const mime = item.kind === "WEBP" ? "image/webp" : "image/jpeg";
+          const scales = [1.0, 0.85, 0.7, 0.55, 0.4];
+          const qualities = [0.82, 0.68, 0.52, 0.38, 0.25];
+          let bestBlob = null;
 
-        outerPng:
-        for (let s = 0; s < scaleList.length; s++) {
-          const { w, h, imgData } = renderScaled(scaleList[s]);
-          const rgbaBuf = imgData.data.buffer;
-
-          await new Promise((r) => setTimeout(r, 0));
-          onProgress(Math.min(94, 35 + Math.round((s / scaleList.length) * 55)));
-
-          for (let c = 0; c < colorsList.length; c++) {
+          outerJpg: for (let s = 0; s < scales.length; s++) {
+            renderScaled(scales[s]);
+            onProgress(Math.min(92, 40 + s * 12));
             await new Promise((r) => setTimeout(r, 0));
-            const encoded = window.UPNG.encode([rgbaBuf], w, h, colorsList[c]);
-            bestBuf = encoded;
 
-            if (encoded.byteLength <= targetMaxBytes && encoded.byteLength < item.originalSize * 0.98) {
-              break outerPng;
-            }
-            if (c === 0 && encoded.byteLength > targetMaxBytes * 2.2) {
-              break;
+            for (let q = 0; q < qualities.length; q++) {
+              const blob = await new Promise((res) =>
+                canvas.toBlob(res, mime, qualities[q]),
+              );
+              bestBlob = blob;
+              if (
+                blob.size <= targetMaxBytes &&
+                blob.size < item.originalSize * 0.98
+              ) {
+                break outerJpg;
+              }
             }
           }
+          onProgress(100);
+          return bestBlob;
         }
 
+        if (typeof window.UPNG !== "undefined") {
+          const estMaxPixels = Math.max(
+            70000,
+            Math.floor(targetMaxBytes * 4.2),
+          );
+          const currentPixels = origW * origH;
+          let startScale = 1.0;
+          if (currentPixels > estMaxPixels) {
+            startScale = Math.min(1.0, Math.sqrt(estMaxPixels / currentPixels));
+          }
+
+          const scaleList =
+            startScale < 0.9
+              ? [
+                  startScale,
+                  startScale * 0.8,
+                  startScale * 0.62,
+                  startScale * 0.45,
+                ]
+              : [1.0, 0.84, 0.7, 0.55, 0.4];
+
+          const colorsList = [256, 128, 64, 32];
+          let bestBuf = null;
+
+          outerPng: for (let s = 0; s < scaleList.length; s++) {
+            const { w, h, imgData } = renderScaled(scaleList[s]);
+            const rgbaBuf = imgData.data.buffer;
+
+            await new Promise((r) => setTimeout(r, 0));
+            onProgress(
+              Math.min(94, 35 + Math.round((s / scaleList.length) * 55)),
+            );
+
+            for (let c = 0; c < colorsList.length; c++) {
+              await new Promise((r) => setTimeout(r, 0));
+              const encoded = window.UPNG.encode(
+                [rgbaBuf],
+                w,
+                h,
+                colorsList[c],
+              );
+              bestBuf = encoded;
+
+              if (
+                encoded.byteLength <= targetMaxBytes &&
+                encoded.byteLength < item.originalSize * 0.98
+              ) {
+                break outerPng;
+              }
+              if (c === 0 && encoded.byteLength > targetMaxBytes * 2.2) {
+                break;
+              }
+            }
+          }
+
+          onProgress(100);
+          return new Blob([bestBuf], { type: "image/png" });
+        }
+
+        const { imgData } = renderScaled(0.75);
+        ctx.putImageData(imgData, 0, 0);
+        const fallbackBlob = await new Promise((res) =>
+          canvas.toBlob(res, "image/png"),
+        );
         onProgress(100);
-        return new Blob([bestBuf], { type: 'image/png' });
+        return fallbackBlob;
       }
 
-      const { imgData } = renderScaled(0.75);
-      ctx.putImageData(imgData, 0, 0);
-      const fallbackBlob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
-      onProgress(100);
-      return fallbackBlob;
-    }
-
-    function getDownloadFilename(item) {
-      if (item.isVideo && item.outputExt) {
-        const base = item.name.replace(/\.[^/.]+$/, '');
-        return `compressed_${base}.${item.outputExt}`;
+      function getDownloadFilename(item) {
+        if (item.isVideo && item.outputExt) {
+          const base = item.name.replace(/\.[^/.]+$/, "");
+          return `compressed_${base}.${item.outputExt}`;
+        }
+        return `compressed_${item.name}`;
       }
-      return `compressed_${item.name}`;
-    }
 
-    async function compressSingleItem(item) {
-      item.status = 'compressing';
-      item.progress = 8;
-      item.startTime = Date.now();
-      item.etaText = '00:04';
-      renderWorkspace();
+      async function compressSingleItem(item) {
+        item.status = "compressing";
+        item.progress = 8;
+        item.startTime = Date.now();
+        item.etaText = "00:04";
+        renderWorkspace();
 
-      const targetMaxBytes = Math.min(state.targetMaxMB * BYTES_MB, item.originalSize * 0.92);
+        const targetMaxBytes = Math.min(
+          state.targetMaxMB * BYTES_MB,
+          item.originalSize * 0.92,
+        );
 
-      const updateProgressUI = (pct) => {
-        item.progress = pct;
-        const elapsedSec = (Date.now() - item.startTime) / 1000;
-        let eta = '--:--';
+        const updateProgressUI = (pct) => {
+          item.progress = pct;
+          const elapsedSec = (Date.now() - item.startTime) / 1000;
+          let eta = "--:--";
 
-        if (pct > 6 && pct < 100) {
-          const projectedTotalSec = elapsedSec / (pct / 100);
-          const remainingSec = Math.max(0, projectedTotalSec - elapsedSec);
-          eta = formatTimeRemaining(remainingSec);
-        } else if (pct >= 100) {
-          eta = '00:00';
+          if (pct > 6 && pct < 100) {
+            const projectedTotalSec = elapsedSec / (pct / 100);
+            const remainingSec = Math.max(0, projectedTotalSec - elapsedSec);
+            eta = formatTimeRemaining(remainingSec);
+          } else if (pct >= 100) {
+            eta = "00:00";
+          }
+
+          item.etaText = eta;
+          const bar = document.getElementById(`bar_${item.id}`);
+          const pctText = document.getElementById(`pct_${item.id}`);
+          const etaText = document.getElementById(`eta_${item.id}`);
+
+          if (bar) bar.style.width = `${pct}%`;
+          if (pctText) pctText.textContent = `${pct}%`;
+          if (etaText) etaText.textContent = `${eta} left`;
+        };
+
+        try {
+          let blob;
+          if (item.isVideo) {
+            blob = await compressVideoItem(
+              item,
+              targetMaxBytes,
+              updateProgressUI,
+            );
+          } else if (item.kind === "GIF") {
+            blob = await compressGifItem(
+              item,
+              targetMaxBytes,
+              updateProgressUI,
+            );
+          } else {
+            blob = await compressRasterItem(
+              item,
+              targetMaxBytes,
+              updateProgressUI,
+            );
+          }
+
+          if (item.compressedUrl) URL.revokeObjectURL(item.compressedUrl);
+          item.compressedBlob = blob;
+          item.compressedUrl = URL.createObjectURL(blob);
+          item.compressedSize = blob.size;
+          item.status = "done";
+          item.progress = 100;
+          item.etaText = "00:00";
+        } catch (e) {
+          item.status = "idle";
+          showToast(`Could not compress ${item.name}`);
         }
 
-        item.etaText = eta;
-        const bar = document.getElementById(`bar_${item.id}`);
-        const pctText = document.getElementById(`pct_${item.id}`);
-        const etaText = document.getElementById(`eta_${item.id}`);
+        renderWorkspace();
+      }
 
-        if (bar) bar.style.width = `${pct}%`;
-        if (pctText) pctText.textContent = `${pct}%`;
-        if (etaText) etaText.textContent = `${eta} left`;
-      };
+      async function compressAllFlow() {
+        if (state.isRunningBatch || state.files.length === 0) return;
+        state.isRunningBatch = true;
 
-      try {
-        let blob;
-        if (item.isVideo) {
-          blob = await compressVideoItem(item, targetMaxBytes, updateProgressUI);
-        } else if (item.kind === 'GIF') {
-          blob = await compressGifItem(item, targetMaxBytes, updateProgressUI);
+        const btn = document.getElementById("compressAllBtn");
+        const btnText = document.getElementById("compressBtnText");
+        btn.disabled = true;
+        btnText.textContent = "Compressing...";
+
+        for (let i = 0; i < state.files.length; i++) {
+          await compressSingleItem(state.files[i]);
+        }
+
+        state.isRunningBatch = false;
+        btn.disabled = false;
+        btnText.textContent = "Compress All";
+        renderWorkspace();
+      }
+
+      /*************************************************************************
+       * 5. WORKSPACE & METRIC RENDERING
+       *************************************************************************/
+      function updateTotalsAndCardsLive() {
+        if (state.files.length === 0) return;
+
+        let totalBefore = 0;
+        let totalAfterOrExpected = 0;
+        const allDone = state.files.every((f) => f.status === "done");
+
+        state.files.forEach((item) => {
+          totalBefore += item.originalSize;
+          const afterBytes =
+            item.status === "done" && item.compressedSize
+              ? item.compressedSize
+              : getExpectedBytes(item);
+          totalAfterOrExpected += afterBytes;
+
+          const afterBoxLabel = document.getElementById(
+            `afterLabel_${item.id}`,
+          );
+          const afterBoxValue = document.getElementById(`afterVal_${item.id}`);
+          const afterBoxBadge = document.getElementById(`afterPct_${item.id}`);
+
+          if (
+            afterBoxLabel &&
+            afterBoxValue &&
+            afterBoxBadge &&
+            item.status !== "done"
+          ) {
+            const expBytes = getExpectedBytes(item);
+            const pct = Math.max(
+              1,
+              Math.min(
+                99,
+                Math.round(
+                  ((item.originalSize - expBytes) / item.originalSize) * 100,
+                ),
+              ),
+            );
+            afterBoxLabel.textContent = "Expected";
+            afterBoxValue.textContent = formatMBAndKB(expBytes);
+            afterBoxBadge.textContent = `-${pct}%`;
+          }
+        });
+
+        const totalDiff = totalBefore - totalAfterOrExpected;
+        const savedTotalPct =
+          totalBefore > 0
+            ? Math.round((Math.abs(totalDiff) / totalBefore) * 100)
+            : 0;
+        const isSmaller = totalDiff >= 0;
+
+        document.getElementById("totalBeforeText").textContent =
+          formatMBAndKB(totalBefore);
+        document.getElementById("totalAfterLabel").textContent = allDone
+          ? "Compressed Total"
+          : "Expected Total";
+        document.getElementById("totalAfterText").textContent =
+          formatMBAndKB(totalAfterOrExpected);
+
+        const badge = document.getElementById("totalSavedBadge");
+        if (isSmaller) {
+          badge.className =
+            "font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0";
+          badge.textContent = `-${savedTotalPct}%`;
         } else {
-          blob = await compressRasterItem(item, targetMaxBytes, updateProgressUI);
+          badge.className =
+            "font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 whitespace-nowrap shrink-0";
+          badge.textContent = `+${savedTotalPct}%`;
+        }
+      }
+
+      function renderWorkspace() {
+        const hasFiles = state.files.length > 0;
+        const headerActions = document.getElementById("headerActions");
+        const universalSec = document.getElementById(
+          "universalSettingsSection",
+        );
+        const filesSec = document.getElementById("filesSection");
+        const downloadAllBtn = document.getElementById("downloadAllBtn");
+        const listContainer = document.getElementById("fileListContainer");
+
+        if (!hasFiles) {
+          headerActions.classList.add("hidden");
+          headerActions.classList.remove("flex");
+          universalSec.classList.add("hidden");
+          filesSec.classList.add("hidden");
+          listContainer.innerHTML = "";
+          return;
         }
 
-        if (item.compressedUrl) URL.revokeObjectURL(item.compressedUrl);
-        item.compressedBlob = blob;
-        item.compressedUrl = URL.createObjectURL(blob);
-        item.compressedSize = blob.size;
-        item.status = 'done';
-        item.progress = 100;
-        item.etaText = '00:00';
-      } catch (e) {
-        item.status = 'idle';
-        showToast(`Could not compress ${item.name}`);
-      }
+        headerActions.classList.remove("hidden");
+        headerActions.classList.add("flex");
+        universalSec.classList.remove("hidden");
+        filesSec.classList.remove("hidden");
 
-      renderWorkspace();
-    }
-
-    async function compressAllFlow() {
-      if (state.isRunningBatch || state.files.length === 0) return;
-      state.isRunningBatch = true;
-
-      const btn = document.getElementById('compressAllBtn');
-      const btnText = document.getElementById('compressBtnText');
-      btn.disabled = true;
-      btnText.textContent = 'Compressing...';
-
-      for (let i = 0; i < state.files.length; i++) {
-        await compressSingleItem(state.files[i]);
-      }
-
-      state.isRunningBatch = false;
-      btn.disabled = false;
-      btnText.textContent = 'Compress All';
-      renderWorkspace();
-    }
-
-    /*************************************************************************
-     * 5. WORKSPACE & METRIC RENDERING
-     *************************************************************************/
-    function updateTotalsAndCardsLive() {
-      if (state.files.length === 0) return;
-
-      let totalBefore = 0;
-      let totalAfterOrExpected = 0;
-      const allDone = state.files.every((f) => f.status === 'done');
-
-      state.files.forEach((item) => {
-        totalBefore += item.originalSize;
-        const afterBytes = item.status === 'done' && item.compressedSize ? item.compressedSize : getExpectedBytes(item);
-        totalAfterOrExpected += afterBytes;
-
-        const afterBoxLabel = document.getElementById(`afterLabel_${item.id}`);
-        const afterBoxValue = document.getElementById(`afterVal_${item.id}`);
-        const afterBoxBadge = document.getElementById(`afterPct_${item.id}`);
-
-        if (afterBoxLabel && afterBoxValue && afterBoxBadge && item.status !== 'done') {
-          const expBytes = getExpectedBytes(item);
-          const pct = Math.max(1, Math.min(99, Math.round(((item.originalSize - expBytes) / item.originalSize) * 100)));
-          afterBoxLabel.textContent = 'Expected';
-          afterBoxValue.textContent = formatMBAndKB(expBytes);
-          afterBoxBadge.textContent = `-${pct}%`;
+        const anyCompressed = state.files.some((f) => f.status === "done");
+        if (anyCompressed) {
+          downloadAllBtn.classList.remove("hidden");
+          downloadAllBtn.classList.add("inline-flex");
+        } else {
+          downloadAllBtn.classList.add("hidden");
+          downloadAllBtn.classList.remove("inline-flex");
         }
-      });
 
-      const totalDiff = totalBefore - totalAfterOrExpected;
-      const savedTotalPct = totalBefore > 0 ? Math.round((Math.abs(totalDiff) / totalBefore) * 100) : 0;
-      const isSmaller = totalDiff >= 0;
+        listContainer.innerHTML = "";
 
-      document.getElementById('totalBeforeText').textContent = formatMBAndKB(totalBefore);
-      document.getElementById('totalAfterLabel').textContent = allDone ? 'Compressed Total' : 'Expected Total';
-      document.getElementById('totalAfterText').textContent = formatMBAndKB(totalAfterOrExpected);
+        state.files.forEach((item) => {
+          const isDone = item.status === "done";
+          const isCompressing = item.status === "compressing";
+          const displayAfterBytes = isDone
+            ? item.compressedSize
+            : getExpectedBytes(item);
+          const isReduced = displayAfterBytes < item.originalSize;
+          const diffPct = Math.round(
+            (Math.abs(item.originalSize - displayAfterBytes) /
+              item.originalSize) *
+              100,
+          );
 
-      const badge = document.getElementById('totalSavedBadge');
-      if (isSmaller) {
-        badge.className = "font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0";
-        badge.textContent = `-${savedTotalPct}%`;
-      } else {
-        badge.className = "font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 whitespace-nowrap shrink-0";
-        badge.textContent = `+${savedTotalPct}%`;
-      }
-    }
+          const thumbSrc = item.isVideo
+            ? item.posterUrl || ""
+            : isDone
+              ? item.compressedUrl
+              : item.originalUrl;
 
-    function renderWorkspace() {
-      const hasFiles = state.files.length > 0;
-      const headerActions = document.getElementById('headerActions');
-      const universalSec = document.getElementById('universalSettingsSection');
-      const filesSec = document.getElementById('filesSection');
-      const downloadAllBtn = document.getElementById('downloadAllBtn');
-      const listContainer = document.getElementById('fileListContainer');
+          const card = document.createElement("div");
+          card.className =
+            "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3.5 sm:p-4 shadow-sm transition-all animate-fade-up";
 
-      if (!hasFiles) {
-        headerActions.classList.add('hidden');
-        headerActions.classList.remove('flex');
-        universalSec.classList.add('hidden');
-        filesSec.classList.add('hidden');
-        listContainer.innerHTML = '';
-        return;
-      }
-
-      headerActions.classList.remove('hidden');
-      headerActions.classList.add('flex');
-      universalSec.classList.remove('hidden');
-      filesSec.classList.remove('hidden');
-
-      const anyCompressed = state.files.some((f) => f.status === 'done');
-      if (anyCompressed) {
-        downloadAllBtn.classList.remove('hidden');
-        downloadAllBtn.classList.add('inline-flex');
-      } else {
-        downloadAllBtn.classList.add('hidden');
-        downloadAllBtn.classList.remove('inline-flex');
-      }
-
-      listContainer.innerHTML = '';
-
-      state.files.forEach((item) => {
-        const isDone = item.status === 'done';
-        const isCompressing = item.status === 'compressing';
-        const displayAfterBytes = isDone ? item.compressedSize : getExpectedBytes(item);
-        const isReduced = displayAfterBytes < item.originalSize;
-        const diffPct = Math.round((Math.abs(item.originalSize - displayAfterBytes) / item.originalSize) * 100);
-
-        const thumbSrc = item.isVideo
-          ? item.posterUrl || ''
-          : isDone
-          ? item.compressedUrl
-          : item.originalUrl;
-
-        const card = document.createElement('div');
-        card.className =
-          'bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3.5 sm:p-4 shadow-sm transition-all animate-fade-up';
-
-        card.innerHTML = `
+          card.innerHTML = `
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
             <div class="flex items-center gap-3.5 min-w-0 w-full sm:w-auto">
               <div
-                data-action="${isDone ? 'open-modal' : ''}"
+                data-action="${isDone ? "open-modal" : ""}"
                 data-id="${item.id}"
-                title="${isDone ? 'Click to inspect before/after comparison with zoom & pan' : ''}"
+                title="${isDone ? "Click to inspect before/after comparison with zoom & pan" : ""}"
                 class="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 checkerboard shrink-0 flex items-center justify-center ${
-                  isDone ? 'cursor-pointer group ring-2 ring-transparent hover:ring-indigo-500 transition-all' : ''
+                  isDone
+                    ? "cursor-pointer group ring-2 ring-transparent hover:ring-indigo-500 transition-all"
+                    : ""
                 }"
               >
                 ${
@@ -1596,7 +2253,7 @@
                 ${
                   item.isVideo
                     ? `<span class="absolute bottom-1 right-1 bg-slate-900/75 text-white rounded px-1 py-0.5 text-[9px] font-mono font-bold leading-none">VID</span>`
-                    : ''
+                    : ""
                 }
               </div>
 
@@ -1622,23 +2279,37 @@
 
               <div class="${
                 isDone
-                  ? (isReduced ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/70' : 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/70')
-                  : 'bg-indigo-50/40 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-800/60'
+                  ? isReduced
+                    ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/70"
+                    : "bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/70"
+                  : "bg-indigo-50/40 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-800/60"
               } border rounded-xl px-3 py-2 whitespace-nowrap">
                 <div class="flex items-center justify-between gap-2">
                   <span id="afterLabel_${item.id}" class="text-[10px] font-semibold uppercase tracking-wider ${
-                    isDone ? (isReduced ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400') : 'text-indigo-600 dark:text-indigo-400'
+                    isDone
+                      ? isReduced
+                        ? "text-emerald-700 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                      : "text-indigo-600 dark:text-indigo-400"
                   }">
-                    ${isDone ? (isReduced ? 'Now' : 'Larger') : 'Expected'}
+                    ${isDone ? (isReduced ? "Now" : "Larger") : "Expected"}
                   </span>
                   <span id="afterPct_${item.id}" class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                    isDone ? (isReduced ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white') : 'bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300'
+                    isDone
+                      ? isReduced
+                        ? "bg-emerald-600 text-white"
+                        : "bg-rose-600 text-white"
+                      : "bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300"
                   }">
                     ${isReduced ? `-${diffPct}%` : `+${diffPct}%`}
                   </span>
                 </div>
                 <div id="afterVal_${item.id}" class="font-mono font-bold text-xs sm:text-sm ${
-                  isDone ? (isReduced ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300') : 'text-slate-800 dark:text-slate-200'
+                  isDone
+                    ? isReduced
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-rose-700 dark:text-rose-300"
+                    : "text-slate-800 dark:text-slate-200"
                 } mt-0.5 whitespace-nowrap">
                   ${formatMBAndKB(displayAfterBytes)}
                 </div>
@@ -1660,21 +2331,21 @@
                     <span>Download</span>
                   </a>
                   `
-                  : ''
+                  : ""
               }
 
               <button
                 type="button"
                 data-action="redo"
                 data-id="${item.id}"
-                ${isCompressing ? 'disabled' : ''}
+                ${isCompressing ? "disabled" : ""}
                 class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 bg-white dark:bg-slate-800 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/50 text-slate-700 dark:text-slate-200 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold text-xs transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap cursor-pointer"
                 title="Re-compress with current universal cap"
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>${isDone ? 'Redo' : 'Compress'}</span>
+                <span>${isDone ? "Redo" : "Compress"}</span>
               </button>
 
               <button
@@ -1692,7 +2363,7 @@
           </div>
 
           <!-- Progress Bar with Countdown -->
-          <div class="${isCompressing ? 'mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800' : 'hidden'}">
+          <div class="${isCompressing ? "mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800" : "hidden"}">
             <div class="flex items-center justify-between text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 mb-1">
               <span>Compressing...</span>
               <div class="flex items-center gap-2">
@@ -1706,328 +2377,413 @@
           </div>
         `;
 
-        listContainer.appendChild(card);
-      });
-
-      listContainer.querySelectorAll('[data-action]').forEach((el) => {
-        const action = el.getAttribute('data-action');
-        if (!action) return;
-
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const id = el.getAttribute('data-id');
-          const item = state.files.find((f) => f.id === id);
-          if (!item) return;
-
-          if (action === 'remove') {
-            if (item.originalUrl) URL.revokeObjectURL(item.originalUrl);
-            if (item.compressedUrl) URL.revokeObjectURL(item.compressedUrl);
-            state.files = state.files.filter((f) => f.id !== id);
-            recalculateSliderBounds(false);
-            renderWorkspace();
-            updateTotalsAndCardsLive();
-          } else if (action === 'redo') {
-            compressSingleItem(item);
-          } else if (action === 'open-modal' && item.status === 'done') {
-            openQualityDiffModal(item);
-          }
+          listContainer.appendChild(card);
         });
-      });
 
-      updateTotalsAndCardsLive();
-    }
+        listContainer.querySelectorAll("[data-action]").forEach((el) => {
+          const action = el.getAttribute("data-action");
+          if (!action) return;
 
-    /*************************************************************************
-     * 6. POPUP QUALITY DIFF SLIDER MODAL WITH SUBPIXEL ZOOM & PAN
-     *************************************************************************/
-    const modalOverlay = document.getElementById('diffModalOverlay');
-    const modalViewport = document.getElementById('modalDiffViewport');
-    const modalAfterContainer = document.getElementById('modalAfterContainer');
-    const modalBeforeContainer = document.getElementById('modalBeforeContainer');
-    const modalBeforeImg = document.getElementById('modalBeforeImg');
-    const modalAfterImg = document.getElementById('modalAfterImg');
-    const modalBeforeVideo = document.getElementById('modalBeforeVideo');
-    const modalAfterVideo = document.getElementById('modalAfterVideo');
-    const modalBeforeClip = document.getElementById('modalBeforeClip');
-    const modalDividerLine = document.getElementById('modalDividerLine');
-    const modalDividerHandle = document.getElementById('modalDividerHandle');
-    const zoomLevelDisplay = document.getElementById('zoomLevelDisplay');
-    const panStatus = document.getElementById('panStatus');
+          el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const id = el.getAttribute("data-id");
+            const item = state.files.find((f) => f.id === id);
+            if (!item) return;
 
-    function applyZoomAndPan() {
-      const transformStr = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
-      modalAfterContainer.style.transform = transformStr;
-      modalBeforeContainer.style.transform = transformStr;
+            if (action === "remove") {
+              if (item.originalUrl) URL.revokeObjectURL(item.originalUrl);
+              if (item.compressedUrl) URL.revokeObjectURL(item.compressedUrl);
+              state.files = state.files.filter((f) => f.id !== id);
+              recalculateSliderBounds(false);
+              renderWorkspace();
+              updateTotalsAndCardsLive();
+            } else if (action === "redo") {
+              compressSingleItem(item);
+            } else if (action === "open-modal" && item.status === "done") {
+              openQualityDiffModal(item);
+            }
+          });
+        });
 
-      const pctStr = `${Math.round(state.zoom * 100)}%`;
-      zoomLevelDisplay.textContent = pctStr;
-      panStatus.textContent = `${state.zoom.toFixed(1)}x`;
-
-      if (state.zoom > 1.0) {
-        modalViewport.style.cursor = 'grab';
-      } else {
-        modalViewport.style.cursor = 'ew-resize';
+        updateTotalsAndCardsLive();
       }
-    }
 
-    function resetZoomAndPan() {
-      state.zoom = 1.0;
-      state.panX = 0;
-      state.panY = 0;
-      applyZoomAndPan();
-    }
+      /*************************************************************************
+       * 6. POPUP QUALITY DIFF SLIDER MODAL WITH SUBPIXEL ZOOM & PAN
+       *************************************************************************/
+      const modalOverlay = document.getElementById("diffModalOverlay");
+      const modalViewport = document.getElementById("modalDiffViewport");
+      const modalAfterContainer = document.getElementById(
+        "modalAfterContainer",
+      );
+      const modalBeforeContainer = document.getElementById(
+        "modalBeforeContainer",
+      );
+      const modalBeforeImg = document.getElementById("modalBeforeImg");
+      const modalAfterImg = document.getElementById("modalAfterImg");
+      const modalBeforeVideo = document.getElementById("modalBeforeVideo");
+      const modalAfterVideo = document.getElementById("modalAfterVideo");
+      const modalBeforeClip = document.getElementById("modalBeforeClip");
+      const modalDividerLine = document.getElementById("modalDividerLine");
+      const modalDividerHandle = document.getElementById("modalDividerHandle");
+      const zoomLevelDisplay = document.getElementById("zoomLevelDisplay");
+      const panStatus = document.getElementById("panStatus");
 
-    function setZoom(newZoom, centerX = null, centerY = null) {
-      const clamped = Math.max(1.0, Math.min(5.0, newZoom));
-      const rect = modalViewport.getBoundingClientRect();
+      function applyZoomAndPan() {
+        const transformStr = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+        modalAfterContainer.style.transform = transformStr;
+        modalBeforeContainer.style.transform = transformStr;
 
-      const cx = centerX !== null ? centerX : rect.width / 2;
-      const cy = centerY !== null ? centerY : rect.height / 2;
+        const pctStr = `${Math.round(state.zoom * 100)}%`;
+        zoomLevelDisplay.textContent = pctStr;
+        panStatus.textContent = `${state.zoom.toFixed(1)}x`;
 
-      // Adjust pan to zoom towards mouse position
-      state.panX = cx - (cx - state.panX) * (clamped / state.zoom);
-      state.panY = cy - (cy - state.panY) * (clamped / state.zoom);
+        if (state.zoom > 1.0) {
+          modalViewport.style.cursor = "grab";
+        } else {
+          modalViewport.style.cursor = "ew-resize";
+        }
+      }
 
-      state.zoom = clamped;
-
-      if (state.zoom === 1.0) {
+      function resetZoomAndPan() {
+        state.zoom = 1.0;
         state.panX = 0;
         state.panY = 0;
+        applyZoomAndPan();
       }
 
-      applyZoomAndPan();
-    }
+      function setZoom(newZoom, centerX = null, centerY = null) {
+        const clamped = Math.max(1.0, Math.min(5.0, newZoom));
+        const rect = modalViewport.getBoundingClientRect();
 
-    document.getElementById('zoomInBtn').addEventListener('click', () => setZoom(state.zoom + 0.35));
-    document.getElementById('zoomOutBtn').addEventListener('click', () => setZoom(state.zoom - 0.35));
-    document.getElementById('zoomResetBtn').addEventListener('click', resetZoomAndPan);
+        const cx = centerX !== null ? centerX : rect.width / 2;
+        const cy = centerY !== null ? centerY : rect.height / 2;
 
-    // Mouse wheel zoom centered on cursor
-    modalViewport.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const rect = modalViewport.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const factor = e.deltaY < 0 ? 1.2 : 0.83;
-      setZoom(state.zoom * factor, mouseX, mouseY);
-    }, { passive: false });
+        // Adjust pan to zoom towards mouse position
+        state.panX = cx - (cx - state.panX) * (clamped / state.zoom);
+        state.panY = cy - (cy - state.panY) * (clamped / state.zoom);
 
-    function openQualityDiffModal(item) {
-      state.activeModalItemId = item.id;
-      const isSmaller = item.compressedSize <= item.originalSize;
-      const diffPct = Math.round((Math.abs(item.originalSize - item.compressedSize) / item.originalSize) * 100);
+        state.zoom = clamped;
 
-      document.getElementById('modalBeforeSize').textContent = formatMBAndKB(item.originalSize);
-      document.getElementById('modalAfterSize').textContent =
-        `${formatMBAndKB(item.compressedSize)} (${isSmaller ? '-' : '+'}${diffPct}%)`;
+        if (state.zoom === 1.0) {
+          state.panX = 0;
+          state.panY = 0;
+        }
 
-      if (item.isVideo) {
-        modalBeforeImg.classList.add('hidden');
-        modalAfterImg.classList.add('hidden');
-        modalBeforeVideo.classList.remove('hidden');
-        modalAfterVideo.classList.remove('hidden');
+        applyZoomAndPan();
+      }
 
-        modalBeforeVideo.src = item.originalUrl;
-        modalAfterVideo.src = item.compressedUrl;
-        modalBeforeVideo.currentTime = 0;
-        modalAfterVideo.currentTime = 0;
-        modalBeforeVideo.play().catch(() => {});
-        modalAfterVideo.play().catch(() => {});
-      } else {
+      document
+        .getElementById("zoomInBtn")
+        .addEventListener("click", () => setZoom(state.zoom + 0.35));
+      document
+        .getElementById("zoomOutBtn")
+        .addEventListener("click", () => setZoom(state.zoom - 0.35));
+      document
+        .getElementById("zoomResetBtn")
+        .addEventListener("click", resetZoomAndPan);
+
+      // Mouse wheel zoom centered on cursor
+      modalViewport.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const rect = modalViewport.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          const factor = e.deltaY < 0 ? 1.2 : 0.83;
+          setZoom(state.zoom * factor, mouseX, mouseY);
+        },
+        { passive: false },
+      );
+
+      let activeVideoSyncCleanup = null;
+
+      function openQualityDiffModal(item) {
+        if (activeVideoSyncCleanup) {
+          activeVideoSyncCleanup();
+          activeVideoSyncCleanup = null;
+        }
+
+        state.activeModalItemId = item.id;
+        const isSmaller = item.compressedSize <= item.originalSize;
+        const diffPct = Math.round(
+          (Math.abs(item.originalSize - item.compressedSize) /
+            item.originalSize) *
+            100,
+        );
+
+        document.getElementById("modalBeforeSize").textContent = formatMBAndKB(
+          item.originalSize,
+        );
+        document.getElementById("modalAfterSize").textContent =
+          `${formatMBAndKB(item.compressedSize)} (${isSmaller ? "-" : "+"}${diffPct}%)`;
+
+        if (item.isVideo) {
+          modalBeforeImg.classList.add("hidden");
+          modalAfterImg.classList.add("hidden");
+          modalBeforeVideo.classList.remove("hidden");
+          modalAfterVideo.classList.remove("hidden");
+
+          modalBeforeVideo.src = item.originalUrl;
+          modalAfterVideo.src = item.compressedUrl;
+          modalBeforeVideo.currentTime = 0;
+          modalAfterVideo.currentTime = 0;
+
+          const syncModalVideos = () => {
+            if (!modalBeforeVideo || !modalAfterVideo) return;
+            if (modalBeforeVideo.paused !== modalAfterVideo.paused) {
+              if (modalBeforeVideo.paused) modalAfterVideo.pause();
+              else modalAfterVideo.play().catch(() => {});
+            }
+            if (
+              Math.abs(
+                modalBeforeVideo.currentTime - modalAfterVideo.currentTime,
+              ) > 0.25
+            ) {
+              modalAfterVideo.currentTime = modalBeforeVideo.currentTime;
+            }
+          };
+
+          ["timeupdate", "play", "pause", "seeking", "seeked"].forEach(
+            (evt) => {
+              modalBeforeVideo.addEventListener(evt, syncModalVideos);
+            },
+          );
+
+          activeVideoSyncCleanup = () => {
+            ["timeupdate", "play", "pause", "seeking", "seeked"].forEach(
+              (evt) => {
+                modalBeforeVideo.removeEventListener(evt, syncModalVideos);
+              },
+            );
+          };
+
+          modalBeforeVideo.play().catch(() => {});
+          modalAfterVideo.play().catch(() => {});
+        } else {
+          modalBeforeVideo.pause();
+          modalAfterVideo.pause();
+          modalBeforeVideo.classList.add("hidden");
+          modalAfterVideo.classList.add("hidden");
+          modalBeforeImg.classList.remove("hidden");
+          modalAfterImg.classList.remove("hidden");
+
+          modalBeforeImg.src = item.originalUrl;
+          modalAfterImg.src = item.compressedUrl;
+        }
+
+        modalOverlay.classList.remove("hidden");
+        modalOverlay.classList.add("flex");
+
+        requestAnimationFrame(() => {
+          syncContainersDimensions();
+          setModalSplitPosition(50);
+          resetZoomAndPan();
+        });
+      }
+
+      function syncContainersDimensions() {
+        const vw = modalViewport.clientWidth;
+        const vh = modalViewport.clientHeight;
+        modalBeforeContainer.style.width = `${vw}px`;
+        modalBeforeContainer.style.height = `${vh}px`;
+        modalAfterContainer.style.width = `${vw}px`;
+        modalAfterContainer.style.height = `${vh}px`;
+      }
+
+      function closeQualityDiffModal() {
+        if (activeVideoSyncCleanup) {
+          activeVideoSyncCleanup();
+          activeVideoSyncCleanup = null;
+        }
         modalBeforeVideo.pause();
         modalAfterVideo.pause();
-        modalBeforeVideo.classList.add('hidden');
-        modalAfterVideo.classList.add('hidden');
-        modalBeforeImg.classList.remove('hidden');
-        modalAfterImg.classList.remove('hidden');
-
-        modalBeforeImg.src = item.originalUrl;
-        modalAfterImg.src = item.compressedUrl;
-      }
-
-      modalOverlay.classList.remove('hidden');
-      modalOverlay.classList.add('flex');
-
-      requestAnimationFrame(() => {
-        syncContainersDimensions();
-        setModalSplitPosition(50);
+        modalOverlay.classList.add("hidden");
+        modalOverlay.classList.remove("flex");
+        state.activeModalItemId = null;
         resetZoomAndPan();
+      }
+
+      function setModalSplitPosition(pct) {
+        state.modalSplitPct = pct;
+        modalBeforeClip.style.width = `${pct}%`;
+        modalDividerLine.style.left = `${pct}%`;
+        modalDividerHandle.style.left = `${pct}%`;
+      }
+
+      document
+        .getElementById("closeModalBtn")
+        .addEventListener("click", closeQualityDiffModal);
+      modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) closeQualityDiffModal();
       });
-    }
 
-    function syncContainersDimensions() {
-      const vw = modalViewport.clientWidth;
-      const vh = modalViewport.clientHeight;
-      modalBeforeContainer.style.width = `${vw}px`;
-      modalBeforeContainer.style.height = `${vh}px`;
-      modalAfterContainer.style.width = `${vw}px`;
-      modalAfterContainer.style.height = `${vh}px`;
-    }
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && state.activeModalItemId)
+          closeQualityDiffModal();
+      });
 
-    function closeQualityDiffModal() {
-      modalBeforeVideo.pause();
-      modalAfterVideo.pause();
-      modalOverlay.classList.add('hidden');
-      modalOverlay.classList.remove('flex');
-      state.activeModalItemId = null;
-      resetZoomAndPan();
-    }
+      // Unified Pan & Split Slider Drag Gestures
+      let isDraggingSlider = false;
+      let isPanning = false;
+      let lastMouseX = 0;
+      let lastMouseY = 0;
 
-    function setModalSplitPosition(pct) {
-      state.modalSplitPct = pct;
-      modalBeforeClip.style.width = `${pct}%`;
-      modalDividerLine.style.left = `${pct}%`;
-      modalDividerHandle.style.left = `${pct}%`;
-    }
+      modalViewport.addEventListener("mousedown", (e) => {
+        const rect = modalViewport.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const handleX = (state.modalSplitPct / 100) * rect.width;
+        const distToDivider = Math.abs(currentX - handleX);
 
-    document.getElementById('closeModalBtn').addEventListener('click', closeQualityDiffModal);
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) closeQualityDiffModal();
-    });
+        // Drag divider line if close to divider or at 1x zoom
+        if (
+          distToDivider < 26 ||
+          (state.zoom === 1.0 && e.target === modalDividerHandle)
+        ) {
+          isDraggingSlider = true;
+          modalViewport.classList.add("dragging-slider");
+          updateSliderFromClientX(e.clientX);
+        } else if (state.zoom > 1.0) {
+          // Drag to pan zoomed viewport
+          isPanning = true;
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+          modalViewport.style.cursor = "grabbing";
+        }
+      });
 
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && state.activeModalItemId) closeQualityDiffModal();
-    });
+      window.addEventListener("mousemove", (e) => {
+        if (isDraggingSlider) {
+          updateSliderFromClientX(e.clientX);
+        } else if (isPanning) {
+          const dx = e.clientX - lastMouseX;
+          const dy = e.clientY - lastMouseY;
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
 
-    // Unified Pan & Split Slider Drag Gestures
-    let isDraggingSlider = false;
-    let isPanning = false;
-    let lastMouseX = 0;
-    let lastMouseY = 0;
+          state.panX += dx;
+          state.panY += dy;
+          applyZoomAndPan();
+        }
+      });
 
-    modalViewport.addEventListener('mousedown', (e) => {
-      const rect = modalViewport.getBoundingClientRect();
-      const currentX = e.clientX - rect.left;
-      const handleX = (state.modalSplitPct / 100) * rect.width;
-      const distToDivider = Math.abs(currentX - handleX);
+      window.addEventListener("mouseup", () => {
+        if (isDraggingSlider) {
+          isDraggingSlider = false;
+          modalViewport.classList.remove("dragging-slider");
+        }
+        if (isPanning) {
+          isPanning = false;
+          modalViewport.style.cursor = state.zoom > 1.0 ? "grab" : "ew-resize";
+        }
+      });
 
-      // Drag divider line if close to divider or at 1x zoom
-      if (distToDivider < 26 || (state.zoom === 1.0 && e.target === modalDividerHandle)) {
-        isDraggingSlider = true;
-        modalViewport.classList.add('dragging-slider');
-        updateSliderFromClientX(e.clientX);
-      } else if (state.zoom > 1.0) {
-        // Drag to pan zoomed viewport
-        isPanning = true;
-        lastMouseX = e.clientX;
-        lastMouseY = e.clientY;
-        modalViewport.style.cursor = 'grabbing';
+      function updateSliderFromClientX(clientX) {
+        const rect = modalViewport.getBoundingClientRect();
+        if (!rect.width) return;
+        const pct = Math.max(
+          1,
+          Math.min(99, ((clientX - rect.left) / rect.width) * 100),
+        );
+        setModalSplitPosition(pct);
       }
-    });
 
-    window.addEventListener('mousemove', (e) => {
-      if (isDraggingSlider) {
-        updateSliderFromClientX(e.clientX);
-      } else if (isPanning) {
-        const dx = e.clientX - lastMouseX;
-        const dy = e.clientY - lastMouseY;
-        lastMouseX = e.clientX;
-        lastMouseY = e.clientY;
+      // Touch support for mobile pan & slider split
+      modalViewport.addEventListener(
+        "touchstart",
+        (e) => {
+          if (!e.touches[0]) return;
+          const t = e.touches[0];
+          const rect = modalViewport.getBoundingClientRect();
+          const currentX = t.clientX - rect.left;
+          const handleX = (state.modalSplitPct / 100) * rect.width;
 
-        state.panX += dx;
-        state.panY += dy;
-        applyZoomAndPan();
-      }
-    });
+          if (Math.abs(currentX - handleX) < 32 || state.zoom === 1.0) {
+            isDraggingSlider = true;
+            updateSliderFromClientX(t.clientX);
+          } else {
+            isPanning = true;
+            lastMouseX = t.clientX;
+            lastMouseY = t.clientY;
+          }
+        },
+        { passive: true },
+      );
 
-    window.addEventListener('mouseup', () => {
-      if (isDraggingSlider) {
+      modalViewport.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!e.touches[0]) return;
+          const t = e.touches[0];
+          if (isDraggingSlider) {
+            updateSliderFromClientX(t.clientX);
+          } else if (isPanning) {
+            const dx = t.clientX - lastMouseX;
+            const dy = t.clientY - lastMouseY;
+            lastMouseX = t.clientX;
+            lastMouseY = t.clientY;
+            state.panX += dx;
+            state.panY += dy;
+            applyZoomAndPan();
+          }
+        },
+        { passive: true },
+      );
+
+      modalViewport.addEventListener("touchend", () => {
         isDraggingSlider = false;
-        modalViewport.classList.remove('dragging-slider');
-      }
-      if (isPanning) {
         isPanning = false;
-        modalViewport.style.cursor = state.zoom > 1.0 ? 'grab' : 'ew-resize';
-      }
-    });
-
-    function updateSliderFromClientX(clientX) {
-      const rect = modalViewport.getBoundingClientRect();
-      if (!rect.width) return;
-      const pct = Math.max(1, Math.min(99, ((clientX - rect.left) / rect.width) * 100));
-      setModalSplitPosition(pct);
-    }
-
-    // Touch support for mobile pan & slider split
-    modalViewport.addEventListener('touchstart', (e) => {
-      if (!e.touches[0]) return;
-      const t = e.touches[0];
-      const rect = modalViewport.getBoundingClientRect();
-      const currentX = t.clientX - rect.left;
-      const handleX = (state.modalSplitPct / 100) * rect.width;
-
-      if (Math.abs(currentX - handleX) < 32 || state.zoom === 1.0) {
-        isDraggingSlider = true;
-        updateSliderFromClientX(t.clientX);
-      } else {
-        isPanning = true;
-        lastMouseX = t.clientX;
-        lastMouseY = t.clientY;
-      }
-    }, { passive: true });
-
-    modalViewport.addEventListener('touchmove', (e) => {
-      if (!e.touches[0]) return;
-      const t = e.touches[0];
-      if (isDraggingSlider) {
-        updateSliderFromClientX(t.clientX);
-      } else if (isPanning) {
-        const dx = t.clientX - lastMouseX;
-        const dy = t.clientY - lastMouseY;
-        lastMouseX = t.clientX;
-        lastMouseY = t.clientY;
-        state.panX += dx;
-        state.panY += dy;
-        applyZoomAndPan();
-      }
-    }, { passive: true });
-
-    modalViewport.addEventListener('touchend', () => {
-      isDraggingSlider = false;
-      isPanning = false;
-    });
-
-    window.addEventListener('resize', () => {
-      if (state.activeModalItemId) {
-        syncContainersDimensions();
-        setModalSplitPosition(state.modalSplitPct);
-      }
-    });
-
-    /*************************************************************************
-     * 7. GLOBAL LISTENERS
-     *************************************************************************/
-    document.getElementById('compressAllBtn').addEventListener('click', compressAllFlow);
-
-    document.getElementById('clearAllBtn').addEventListener('click', () => {
-      state.files.forEach((f) => {
-        if (f.originalUrl) URL.revokeObjectURL(f.originalUrl);
-        if (f.compressedUrl) URL.revokeObjectURL(f.compressedUrl);
       });
-      state.files = [];
-      const slider = document.getElementById('universalSlider');
-      slider.max = "5.00";
-      document.getElementById('directMbInput').max = "50";
-      document.getElementById('directKbInput').max = "51200";
-      document.getElementById('sliderSubtext').textContent = "Applies universally to all uploaded files";
-      renderWorkspace();
-    });
 
-    document.getElementById('downloadAllBtn').addEventListener('click', () => {
-      const doneFiles = state.files.filter((f) => f.status === 'done' && f.compressedUrl);
-      doneFiles.forEach((item, idx) => {
-        setTimeout(() => {
-          const a = document.createElement('a');
-          a.href = item.compressedUrl;
-          a.download = getDownloadFilename(item);
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        }, idx * 350);
+      window.addEventListener("resize", () => {
+        if (state.activeModalItemId) {
+          syncContainersDimensions();
+          setModalSplitPosition(state.modalSplitPct);
+        }
       });
-    });
 
-    syncUniversalSliderUI();
-  </script>
-</body>
+      /*************************************************************************
+       * 7. GLOBAL LISTENERS
+       *************************************************************************/
+      document
+        .getElementById("compressAllBtn")
+        .addEventListener("click", compressAllFlow);
+
+      document.getElementById("clearAllBtn").addEventListener("click", () => {
+        state.files.forEach((f) => {
+          if (f.originalUrl) URL.revokeObjectURL(f.originalUrl);
+          if (f.compressedUrl) URL.revokeObjectURL(f.compressedUrl);
+        });
+        state.files = [];
+        const slider = document.getElementById("universalSlider");
+        slider.max = "5.00";
+        document.getElementById("directMbInput").max = "50";
+        document.getElementById("directKbInput").max = "51200";
+        document.getElementById("sliderSubtext").textContent =
+          "Applies universally to all uploaded files";
+        renderWorkspace();
+      });
+
+      document
+        .getElementById("downloadAllBtn")
+        .addEventListener("click", () => {
+          const doneFiles = state.files.filter(
+            (f) => f.status === "done" && f.compressedUrl,
+          );
+          doneFiles.forEach((item, idx) => {
+            setTimeout(() => {
+              const a = document.createElement("a");
+              a.href = item.compressedUrl;
+              a.download = getDownloadFilename(item);
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }, idx * 350);
+          });
+        });
+
+      syncUniversalSliderUI();
+    </script>
+  </body>
 </html>
